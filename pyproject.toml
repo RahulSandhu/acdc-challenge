@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "acdc"
+version = "0.1.0"
+description = "Machine learning applied to radiomic features extracted from cardiac MRI scans"
+authors = [{ name = "Ravneet-Rahul Sandhu Singh", email = "rahulsandhu542001@gmail.com" }]
+dependencies = [
+    "pandas",
+    "numpy",
+    "scikit-learn"
+]
+
+[tool.setuptools]
+package-dir = {"" = "code"}
+packages = ["eda", "models", "metrics", "processing", "tools"]
+
+[tool.black]
+line-length = 79
+target-version = ["py311"]
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 79
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true

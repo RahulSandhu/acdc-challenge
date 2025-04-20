@@ -65,10 +65,10 @@ def compute_top_correlations(
 
 
 if __name__ == "__main__":
-    # Apply custom style settings
+    # Custom style
     plt.style.use("../../misc/custom_style.mplstyle")
 
-    # Read raw radiomics data
+    # Load dataset
     df = pd.read_csv("../../data/raw/acdc_radiomics.csv")
 
     # Ensure output directory exists

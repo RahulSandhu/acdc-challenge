@@ -19,7 +19,6 @@ from sklearn.metrics import (
 )
 from sklearn.preprocessing import label_binarize
 from sklearn.utils import resample
-from tools.SignificantSelectKBest import SignificantSelectKBest
 
 
 def evaluate_model(
@@ -48,6 +47,10 @@ def evaluate_model(
     Outputs:
         - dict: A dictionary of evaluation metrics including.
     """
+    # Convert DataFrame to NumPy array to avoid warnings
+    if isinstance(X_test, pd.DataFrame):
+        X_test = X_test.values
+
     # Predict labels for the test set
     y_pred = model.predict(X_test)
 
@@ -118,38 +121,38 @@ def evaluate_model(
 
 
 if __name__ == "__main__":
-    # Apply custom plotting style
+    # Custom style
     plt.style.use("../../misc/custom_style.mplstyle")
 
     # Load test datasets
-    X_test = pd.read_csv("../../data/processed/X_test.csv")
+    X_test = pd.read_csv("../../data/processed/X_test_lda.csv")
     y_test = pd.read_csv("../../data/processed/y_test.csv").squeeze()
 
     # Locate result directories
     base_dir = Path("../../results/models/")
+    le = joblib.load(base_dir / "label_encoder.pkl")
     model_types = [d.name for d in base_dir.iterdir() if d.is_dir()]
-    variants = ["simple_lda", "kfold_lda", "simple_anova", "kfold_anova"]
+    variants = ["simple", "kfold"]
 
     # Loop through each model type
     for model_type in model_types:
         # Set paths for results and load label encoder
         results_dir = base_dir / model_type
-        le = joblib.load(results_dir / "label_encoder.pkl")
 
         # Prepare directory for saving metric plots
         images_dir = Path(f"../../images/metrics/{model_type}/")
         images_dir.mkdir(parents=True, exist_ok=True)
 
         # Initialize figures for confusion matrices and ROC curves
-        fig_cm, axs_cm = plt.subplots(2, 2, figsize=(10, 8))
-        fig_auc, axs_auc = plt.subplots(2, 2, figsize=(10, 8))
+        fig_cm, axs_cm = plt.subplots(1, 2, figsize=(10, 8))
+        fig_auc, axs_auc = plt.subplots(1, 2, figsize=(10, 8))
         axs_cm = axs_cm.ravel()
         axs_auc = axs_auc.ravel()
 
         # Iterate over each variant of the model
         for i, variant in enumerate(variants):
             # Define full model name and path
-            model_name = f"{variant}_{model_type}"
+            model_name = f"{model_type}_{variant}"
             model_path = results_dir / f"{model_name}.pkl"
 
             # Load model and evaluate performance

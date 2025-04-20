@@ -57,13 +57,13 @@ def compute_outlier_df(df: pd.DataFrame) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    # Apply plotting style
+    # Custom style
     plt.style.use("../../misc/custom_style.mplstyle")
 
-    # Load raw radiomics data
+    # Load dataset
     df = pd.read_csv("../../data/raw/acdc_radiomics.csv")
 
-    # Create image output directory
+    # Ensure output directory exists
     img_dir = Path("../../images/processing")
     img_dir.mkdir(parents=True, exist_ok=True)
 
@@ -99,10 +99,11 @@ if __name__ == "__main__":
 
     # Plot bar chart of outliers
     plt.figure(figsize=(12, 6))
-    g = sns.barplot(data=top_df, x="feature", y="outliers", hue="class")
+    g = sns.barplot(
+        data=top_df, x="feature", y="outliers", hue="class", legend=False
+    )
     g.set_xticks(range(len(short_labels)))
     g.set_xticklabels(short_labels, rotation=45, ha="right")
-    g.legend_.remove()
 
     # Add horizontal lines for each class's mean ± std
     class_colors = sns.color_palette(n_colors=len(class_stats))

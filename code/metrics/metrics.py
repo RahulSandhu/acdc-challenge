@@ -136,8 +136,12 @@ if __name__ == "__main__":
 
     # Loop through each model type
     for model_type in model_types:
-        # Set paths for results and load label encoder
+        # Set paths for metrics and results
+        metrics_dir = Path("../../results/metrics/") / model_type
+        metrics_dir.mkdir(parents=True, exist_ok=True)
+
         results_dir = base_dir / model_type
+        results_dir.mkdir(parents=True, exist_ok=True)
 
         # Prepare directory for saving metric plots
         images_dir = Path(f"../../images/metrics/{model_type}/")
@@ -167,7 +171,7 @@ if __name__ == "__main__":
                 ),
                 le,
                 model_name,
-                results_dir,
+                metrics_dir,
             )
 
             # Plot confusion matrix for this model

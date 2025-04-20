@@ -106,7 +106,7 @@ def svm(
     models['simple'] = best_model
 
     print("\n" + "=" * 50)
-    print("  Best Parameters (K-FOLD + CTL/LDA + SVM)")
+    print("  Best Parameters (SIMPLE + CTL/LDA + SVM)")
     print("=" * 50)
     print(f"  C       : {best_parameters['C']}")
     print(f"  kernel  : {best_parameters['kernel']}")

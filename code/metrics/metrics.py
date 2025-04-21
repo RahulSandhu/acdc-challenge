@@ -18,7 +18,6 @@ from sklearn.metrics import (
     roc_curve,
 )
 from sklearn.preprocessing import label_binarize
-from sklearn.utils import resample
 
 
 def evaluate_model(
@@ -194,55 +193,45 @@ if __name__ == "__main__":
             y_proba = metrics["y_proba"]
             n_classes = y_test_bin.shape[1]
 
-            # Set bootstrap parameters for ROC variability
-            n_bootstrap = 100
-            mean_fpr = np.linspace(0, 1, 2000)
+            # Store the best FPR-TPR pair and AUC for each class
+            best_fpr_tpr = {}
+            auc_values = {}
 
-            # Compute ROC curve with bootstrap for each class
+            # Compute ROC curve for each class
             for j in range(n_classes):
-                # Collect true positive rates across bootstraps
-                tprs = []
+                # Collect true positive rates, false positive rates and thresholds
+                fpr, tpr, thresholds = roc_curve(
+                    y_test_bin[:, j], y_proba[:, j]
+                )
+                auc_value = auc(fpr, tpr)
+                auc_values[j] = auc_value
 
-                # Perform bootstrap sampling
-                for _ in range(n_bootstrap):
-                    # Resample test indices with stratification
-                    indices = resample(
-                        np.arange(len(y_test_bin)),
-                        replace=True,
-                        stratify=y_test_bin[:, j],
-                        random_state=42,
-                    )
+                # Find the best threshold Younden's J Statistic
+                youden_j = tpr - fpr
+                best_idx = np.argmax(youden_j)
+                best_fpr_tpr[j] = (
+                    fpr[best_idx],
+                    tpr[best_idx],
+                    thresholds[best_idx],
+                )
 
-                    # Compute ROC for resampled data
-                    fpr, tpr, _ = roc_curve(
-                        y_test_bin[indices, j], y_proba[indices, j]
-                    )
+                print(
+                    f"Class {le.classes_[j]}: Best FPR={fpr[best_idx]:.2f}, TPR={tpr[best_idx]:.2f}, Threshold={thresholds[best_idx]:.2f}, AUC={auc_value:.2f}"
+                )
 
-                    # Interpolate TPR at common FPR grid
-                    interp_tpr = np.interp(mean_fpr, fpr, tpr)
-                    interp_tpr[0] = 0.0
-                    tprs.append(interp_tpr)
-
-                # Calculate mean ROC and AUC
-                tprs = np.array(tprs)
-                mean_tpr = np.mean(tprs, axis=0)
-                mean_tpr[-1] = 1.0
-                mean_auc = auc(mean_fpr, mean_tpr)
-
-                # Plot mean ROC curve
+                # Plot ROC curve
                 axs_auc[i].plot(
-                    mean_fpr,
-                    mean_tpr,
-                    label=f"{le.classes_[j]} (AUC = {mean_auc:.2f})",
+                    fpr,
+                    tpr,
+                    label=f"{le.classes_[j]} (AUC = {auc_value:.2f})",
+                    lw=2,
                 )
 
             # Add diagonal and labels to ROC plot
-            axs_auc[i].plot(
-                [0, 1], [0, 1], color="navy", lw=1.5, linestyle="--"
-            )
+            axs_auc[i].plot([0, 1], [0, 1], color="navy", lw=2, linestyle="--")
             axs_auc[i].set_title(model_name)
-            axs_auc[i].set_xlabel("FPR")
-            axs_auc[i].set_ylabel("TPR")
+            axs_auc[i].set_xlabel("False Positive Rate")
+            axs_auc[i].set_ylabel("True Positive Rate")
             axs_auc[i].legend(loc="lower right")
 
         # Save figures

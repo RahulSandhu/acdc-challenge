@@ -15,39 +15,35 @@ from tools.CoefficientThresholdLasso import CoefficientThresholdLasso
 
 
 def rf(
-    X_train_lda: pd.DataFrame,
+    X_train: pd.DataFrame,
     y_train: pd.Series,
-    X_val_lda: pd.DataFrame,
+    X_val: pd.DataFrame,
     y_val: pd.Series,
-    X_temp_lda: pd.DataFrame,
+    X_temp: pd.DataFrame,
     y_temp: pd.Series,
     cv: StratifiedKFold,
     n_estimators: Sequence[int],
     max_depth: Sequence[Optional[int]],
     min_samples_leaf: Sequence[int],
     SEED: int = 42,
-    pen: float = 0.75,
+    pen: float = 0.5,
 ) -> Dict[str, Optional[Pipeline]]:
     """
-    Perform a two-step selection process for Random Forest classifiers using
-    LDA-transformed input.
+    Perform a two-step RF selection pipeline using CTL and LDA.
 
-    First, it performs a manual grid search on the training and validation
-    sets, selecting the best model based on a penalized score that accounts for
-    the train-validation gap. Second, it performs a GridSearchCV using
-    cross-validation and selects the model with the best penalized score.
+    This function first performs a manual grid search using a simple train/val
+    split. Then, it uses cross-validation on the full train+val set to find the
+    best RF parameters using CTL and LDA inside the CV pipeline.
 
     Inputs:
-        - X_train_lda (pd.DataFrame): LDA-transformed training feature matrix
-          (60%).
-        - y_train (pd.Series): Training labels.
-        - X_val_lda (pd.DataFrame): LDA-transformed validation feature matrix
-          (20%).
-        - y_val (pd.Series): Validation labels.
-        - X_temp_lda (pd.DataFrame): LDA-transformed combined training +
-          validation feature matrix (80%) used for cross-validation.
-        - y_temp (pd.Series): Corresponding labels for X_temp_lda.
-        - cv (StratifiedKFold): StratifiedKFold object for cross-validation.
+        - X_train (pd.DataFrame): Training features (raw, already scaled).
+        - y_train (pd.Series): Labels for the training set.
+        - X_val (pd.DataFrame): Validation features (raw, already scaled).
+        - y_val (pd.Series): Labels for the validation set.
+        - X_temp (pd.DataFrame): Combined training+validation features (80% of
+          total).
+        - y_temp (pd.Series): Corresponding labels for X_temp.
+        - cv (StratifiedKFold): K-Fold strategy to apply during GridSearchCV.
         - n_estimators (Sequence[int]): List of the number of trees in the
           forest.
         - max_depth (Sequence[Optional[int]]): List of maximum depths for each
@@ -56,7 +52,7 @@ def rf(
           required to be at a leaf node.
         - SEED (int, optional): Random seed for reproducibility. Default is 42.
         - pen (float, optional): Penalty weight for the train-validation score
-          gap. Default is 0.75.
+          gap. Default is 0.5.
 
     Outputs:
         - Dict[str, Optional[Pipeline]]: Dictionary with keys 'simple' and
@@ -84,6 +80,18 @@ def rf(
         for s in min_samples_leaf
     ]
 
+    # Preprocessing pipeline: CTL → LDA
+    preprocess = Pipeline(
+        [
+            ('ctl', CoefficientThresholdLasso()),
+            ('lda', LinearDiscriminantAnalysis()),
+        ]
+    )
+
+    # Fit on training data and transform both train and val
+    X_train_lda = preprocess.fit_transform(X_train.values, y_train)
+    X_val_lda = preprocess.transform(X_val.values)
+
     # Manual grid search (simple train-val split)
     for params in parameters_grid:
         # Fit RF with current parameters
@@ -108,6 +116,19 @@ def rf(
                 'score': penalized,
             }
 
+    # Rebuild full model
+    best_model = Pipeline(
+        [
+            ('ctl', CoefficientThresholdLasso()),
+            ('lda', LinearDiscriminantAnalysis()),
+            (
+                'rf',
+                RandomForestClassifier(**best_parameters, random_state=SEED),
+            ),
+        ]
+    )
+    best_model.fit(X_train, y_train)
+
     # Fix for Pyright
     best_parameters = cast(Dict[str, Any], best_parameters)
     best_model = cast(Pipeline, best_model)
@@ -129,9 +150,13 @@ def rf(
     )
     print("=" * 50 + "\n")
 
-    # Grid search with transformed input
+    # Grid search pipeline: CTL → LDA → RF
     grid_pipeline = Pipeline(
-        [('rf', RandomForestClassifier(random_state=SEED))]
+        [
+            ('ctl', CoefficientThresholdLasso()),
+            ('lda', LinearDiscriminantAnalysis()),
+            ('rf', RandomForestClassifier(random_state=SEED)),
+        ]
     )
     grid_parameters = {
         'rf__n_estimators': n_estimators,
@@ -139,7 +164,7 @@ def rf(
         'rf__min_samples_leaf': min_samples_leaf,
     }
 
-    # Run grid search CV
+    # Run stratified K-fold grid search
     grid_search = GridSearchCV(
         estimator=grid_pipeline,
         param_grid=grid_parameters,
@@ -150,7 +175,7 @@ def rf(
         verbose=1,
         refit=False,
     )
-    grid_search.fit(X_temp_lda, y_temp)
+    grid_search.fit(X_temp, y_temp)
 
     # Penalize overfit models
     df = pd.DataFrame(grid_search.cv_results_)
@@ -167,13 +192,21 @@ def rf(
         'score': df.loc[best_idx, 'score'],
     }
 
-    # Reconstruct and fit best parameter dictionary
+    # Refit best model on the full training+val set
     best_parameters = {
         k.replace('rf__', ''): v for k, v in best_parameters.items()
     }
-    best_rf = RandomForestClassifier(**best_parameters, random_state=SEED)
-    best_rf.fit(X_temp_lda, y_temp)
-    final_model = Pipeline([('rf', best_rf)])
+    final_model = Pipeline(
+        [
+            ('ctl', CoefficientThresholdLasso()),
+            ('lda', LinearDiscriminantAnalysis()),
+            (
+                'rf',
+                RandomForestClassifier(random_state=SEED),
+            ),
+        ]
+    )
+    final_model.fit(X_temp, y_temp)
 
     # Update models
     models['kfold'] = final_model
@@ -242,40 +275,22 @@ if __name__ == "__main__":
     # Get total number of training samples
     total_samples = len(X_temp)
 
-    # Strategy for selecting the number of folds based on dataset size:
-    #   - For very small datasets (< 100 samples), use leave-one-out CV
-    #   - For moderate datasets (< 1000 samples), use 10 folds
-    #   - Otherwise, use 5 folds
-    if total_samples < 100:
-        heuristic_K = total_samples
-    elif total_samples < 1000:
-        heuristic_K = 10
-    else:
-        heuristic_K = 5
+    # Get the minimum number of samples across all classes
+    min_class_count = y_temp.value_counts().min()
 
-    # Limit K to the smallest class count to ensure stratification works
-    min_class_count = y_train.value_counts().min()
-    K = min(heuristic_K, min_class_count)
+    # Strategy for selecting the number of folds based on dataset size:
+    #   - For very small datasets (< 100 samples), use 4 folds (or less if class count is lower)
+    #   - For moderate datasets (< 1000 samples), use 5 folds
+    #   - For large datasets (>= 1000 samples), use 10 folds
+    if total_samples < 100:
+        heuristic_K = min(4, min_class_count)
+    elif total_samples < 1000:
+        heuristic_K = min(5, min_class_count)
+    else:
+        heuristic_K = min(10, min_class_count)
 
     # Define stratified K-Fold cross-validator
-    cv = StratifiedKFold(n_splits=K, shuffle=True, random_state=42)
-
-    # Apply CTL
-    ctl = CoefficientThresholdLasso()
-    ctl.fit(X_train.values, y_train.values)
-
-    X_train_lasso = ctl.transform(X_train.values)
-    X_val_lasso = ctl.transform(X_val.values)
-    X_test_lasso = ctl.transform(X_test.values)
-    X_temp_lasso = ctl.transform(X_temp.values)
-
-    # Apply LDA
-    lda = LinearDiscriminantAnalysis()
-    X_train_lda = lda.fit_transform(X_train_lasso, y_train)
-
-    X_val_lda = lda.transform(X_val_lasso)
-    X_test_lda = lda.transform(X_test_lasso)
-    X_temp_lda = lda.transform(X_temp_lasso)
+    cv = StratifiedKFold(n_splits=heuristic_K, shuffle=True, random_state=42)
 
     # Define RF hyperparameters
     n_estimators = [10, 50, 100, 200]
@@ -284,16 +299,16 @@ if __name__ == "__main__":
 
     # Run RF
     models = rf(
-        X_train_lda=X_train_lda,
+        X_train=X_train,
         y_train=y_train,
-        X_val_lda=X_val_lda,
+        X_val=X_val,
         y_val=y_val,
-        X_temp_lda=X_temp_lda,
+        X_temp=X_temp,
         y_temp=y_temp,
         cv=cv,
         n_estimators=n_estimators,
         max_depth=max_depth,
         min_samples_leaf=min_samples_leaf,
         SEED=42,
-        pen=0.75,
+        pen=0.5,
     )

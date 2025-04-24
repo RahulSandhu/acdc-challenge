@@ -6,13 +6,11 @@ import pandas as pd
 from models.knn import knn
 from models.rf import rf
 from models.svm import svm
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import (
     StratifiedKFold,
     train_test_split,
 )
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-from tools.CoefficientThresholdLasso import CoefficientThresholdLasso
 
 # Load dataset
 df = pd.read_csv("../data/raw/acdc_radiomics.csv")
@@ -65,49 +63,29 @@ y_val = cast(pd.Series, y_val)
 y_test = cast(pd.Series, y_test)
 y_temp = cast(pd.Series, y_temp)
 
+# Save test set
+pd.DataFrame(X_test).to_csv("../data/processed/X_test.csv", index=False)
+y_test.to_frame().to_csv("../data/processed/y_test.csv", index=False)
+
 # Get total number of training samples
 total_samples = len(X_temp)
 
-# Strategy for selecting the number of folds based on dataset size:
-#   - For very small datasets (< 100 samples), use leave-one-out CV
-#   - For moderate datasets (< 1000 samples), use 10 folds
-#   - Otherwise, use 5 folds
-if total_samples < 100:
-    heuristic_K = total_samples
-elif total_samples < 1000:
-    heuristic_K = 10
-else:
-    heuristic_K = 5
+# Get the minimum number of samples across all classes
+min_class_count = y_temp.value_counts().min()
 
-# Limit K to the smallest class count to ensure stratification works
-min_class_count = y_train.value_counts().min()
-K = min(heuristic_K, min_class_count)
+# Strategy for selecting the number of folds based on dataset size:
+#   - For very small datasets (< 100 samples), use 4 folds (or less if class count is lower)
+#   - For moderate datasets (< 1000 samples), use 5 folds
+#   - For large datasets (>= 1000 samples), use 10 folds
+if total_samples < 100:
+    heuristic_K = min(4, min_class_count)
+elif total_samples < 1000:
+    heuristic_K = min(5, min_class_count)
+else:
+    heuristic_K = min(10, min_class_count)
 
 # Define stratified K-Fold cross-validator
-cv = StratifiedKFold(n_splits=K, shuffle=True, random_state=42)
-
-# Apply CTL
-ctl = CoefficientThresholdLasso()
-ctl.fit(X_train.values, y_train.values)
-
-X_train_lasso = ctl.transform(X_train.values)
-X_val_lasso = ctl.transform(X_val.values)
-X_test_lasso = ctl.transform(X_test.values)
-X_temp_lasso = ctl.transform(X_temp.values)
-
-# Apply LDA
-lda = LinearDiscriminantAnalysis()
-X_train_lda = lda.fit_transform(X_train_lasso, y_train)
-
-X_val_lda = lda.transform(X_val_lasso)
-X_test_lda = lda.transform(X_test_lasso)
-X_temp_lda = lda.transform(X_temp_lasso)
-
-# Save test set
-pd.DataFrame(X_test_lda).to_csv(
-    "../data/processed/X_test_lda.csv", index=False
-)
-y_test.to_frame().to_csv("../data/processed/y_test.csv", index=False)
+cv = StratifiedKFold(n_splits=heuristic_K, shuffle=True, random_state=42)
 
 # Define hyperparameters for the different models
 knn_n = list(range(1, 57, 2))
@@ -119,56 +97,56 @@ min_samples_leaf = [1, 2, 4, 8, 10, 12, 14, 16, 18, 20]
 svm_c = [0.1, 1, 10, 100]
 
 # Run and save KNN
-knn_results = knn(
-    X_train_lda=X_train_lda,
+knn_models = knn(
+    X_train=X_train,
     y_train=y_train,
-    X_val_lda=X_val_lda,
+    X_val=X_val,
     y_val=y_val,
-    X_temp_lda=X_temp_lda,
+    X_temp=X_temp,
     y_temp=y_temp,
     cv=cv,
     knn_n=knn_n,
-    pen=0.75,
+    pen=0.5,
 )
 
 Path("../results/models/knn").mkdir(parents=True, exist_ok=True)
-joblib.dump(knn_results['simple'], "../results/models/knn/knn_simple.pkl")
-joblib.dump(knn_results['kfold'], "../results/models/knn/knn_kfold.pkl")
+joblib.dump(knn_models['simple'], "../results/models/knn/knn_simple.pkl")
+joblib.dump(knn_models['kfold'], "../results/models/knn/knn_kfold.pkl")
 
 # Run and save RF
-rf_results = rf(
-    X_train_lda=X_train_lda,
+rf_models = rf(
+    X_train=X_train,
     y_train=y_train,
-    X_val_lda=X_val_lda,
+    X_val=X_val,
     y_val=y_val,
-    X_temp_lda=X_temp_lda,
+    X_temp=X_temp,
     y_temp=y_temp,
     cv=cv,
     n_estimators=n_estimators,
     max_depth=max_depth,
     min_samples_leaf=min_samples_leaf,
     SEED=42,
-    pen=0.75,
+    pen=0.5,
 )
 
 Path("../results/models/rf").mkdir(parents=True, exist_ok=True)
-joblib.dump(rf_results['simple'], "../results/models/rf/rf_simple.pkl")
-joblib.dump(rf_results['kfold'], "../results/models/rf/rf_kfold.pkl")
+joblib.dump(rf_models['simple'], "../results/models/rf/rf_simple.pkl")
+joblib.dump(rf_models['kfold'], "../results/models/rf/rf_kfold.pkl")
 
 # Run and save SVM
-svm_results = svm(
-    X_train_lda=X_train_lda,
+svm_models = svm(
+    X_train=X_train,
     y_train=y_train,
-    X_val_lda=X_val_lda,
+    X_val=X_val,
     y_val=y_val,
-    X_temp_lda=X_temp_lda,
+    X_temp=X_temp,
     y_temp=y_temp,
     cv=cv,
     svm_c=svm_c,
     SEED=42,
-    pen=0.75,
+    pen=0.5,
 )
 
 Path("../results/models/svm").mkdir(parents=True, exist_ok=True)
-joblib.dump(svm_results['simple'], "../results/models/svm/svm_simple.pkl")
-joblib.dump(svm_results['kfold'], "../results/models/svm/svm_kfold.pkl")
+joblib.dump(svm_models['simple'], "../results/models/svm/svm_simple.pkl")
+joblib.dump(svm_models['kfold'], "../results/models/svm/svm_kfold.pkl")

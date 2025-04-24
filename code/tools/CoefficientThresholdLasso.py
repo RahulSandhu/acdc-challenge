@@ -9,7 +9,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.linear_model import Lasso, lasso_path
 from sklearn.model_selection import KFold, train_test_split
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 
 class CoefficientThresholdLasso(BaseEstimator, TransformerMixin):
@@ -209,13 +209,28 @@ class CoefficientThresholdLasso(BaseEstimator, TransformerMixin):
 
 
 if __name__ == "__main__":
-    # Custom style
-    plt.style.use("../../misc/custom_style.mplstyle")
-
     # Load dataset
-    df = pd.read_csv("../../data/processed/norm_acdc_radiomics.csv")
-    X = df.iloc[:, :-1]
-    y = df.iloc[:, -1]
+    df = pd.read_csv("../../data/raw/acdc_radiomics.csv")
+
+    # Encode labels
+    le = LabelEncoder()
+    df["class"] = le.fit_transform(df["class"])
+
+    # Separate features and classes
+    X = df.drop(columns=["class"])
+    y = df["class"]
+
+    # Apply StandardScaler
+    scaler = StandardScaler()
+    scaled_features = scaler.fit_transform(X)
+    scaled_df = pd.DataFrame(scaled_features, columns=X.columns)
+
+    # Normalized dataframe
+    norm_df = pd.concat([scaled_df, y.reset_index(drop=True)], axis=1)
+
+    # Separate features and classes
+    X = norm_df.drop(columns=["class"])
+    y = norm_df["class"]
 
     # Ensure output directory exists
     img_dir = Path("../../images/feature_selection/")

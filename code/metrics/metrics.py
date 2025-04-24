@@ -124,7 +124,7 @@ if __name__ == "__main__":
     plt.style.use("../../misc/custom_style.mplstyle")
 
     # Load test datasets
-    X_test = pd.read_csv("../../data/processed/X_test_lda.csv")
+    X_test = pd.read_csv("../../data/processed/X_test.csv")
     y_test = pd.read_csv("../../data/processed/y_test.csv").squeeze()
 
     # Locate result directories

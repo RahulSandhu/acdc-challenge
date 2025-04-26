@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 import joblib
 import matplotlib.pyplot as plt
@@ -22,36 +22,41 @@ from sklearn.preprocessing import label_binarize
 
 def evaluate_model(
     model,
-    X_test: Union[pd.Series, np.ndarray, pd.DataFrame],
-    y_test: Union[pd.Series, np.ndarray, pd.DataFrame],
+    X_test,
+    y_test,
     label_encoder,
-    model_name: str,
-    out_dir: Path,
 ) -> Dict[str, Any]:
     """
-    Evaluate a trained classification model on a test set and save its report.
+    Evaluate a trained classification model on a test set.
 
     Inputs:
-        - model: Trained sklearn estimator with predict and predict_proba
-          methods.
-        - X_test (pd.DataFrame or np.ndarray): Test feature matrix.
-        - y_test (pd.Series or np.ndarray): True test labels.
-        - label_encoder: Fitted label encoder for decoding class
-          names.
-        - model_name (str): Identifier for the model used in printing and
-          filenames.
-        - out_dir (Path): Directory path to save the classification
-          report CSV.
+        - model: Trained sklearn estimator.
+        - X_test (pd.Series): Test feature matrix.
+        - y_test (pd.Series): True test labels.
+        - label_encoder: Fitted label encoder for decoding class names.
 
     Outputs:
         - dict: A dictionary of evaluation metrics including.
     """
-    # Convert DataFrame to NumPy array to avoid warnings
-    if isinstance(X_test, pd.DataFrame):
-        X_test = X_test.values
+    # Check if model is a skorch NeuralNet inside a Pipeline
+    is_skorch = (
+        any("NeuralNet" in str(step[1].__class__) for step in model.steps)
+        if hasattr(model, "steps")
+        else False
+    )
 
-    # Predict labels for the test set
-    y_pred = model.predict(X_test)
+    # If skorch, X_test must be float32
+    X_input = (
+        X_test.values.astype('float32')
+        if isinstance(X_test, pd.DataFrame)
+        else X_test
+    )
+    if is_skorch:
+        y_pred = model.predict(X_input)
+        y_proba = model.predict_proba(X_input)
+    else:
+        y_pred = model.predict(X_test)
+        y_proba = model.predict_proba(X_test)
 
     # Compute performance metrics
     accuracy = accuracy_score(y_test, y_pred)
@@ -73,7 +78,6 @@ def evaluate_model(
     acc_ci = (accuracy - margin, accuracy + margin)
 
     # Predict probabilities and prepare binarized true labels for ROC-AUC
-    y_proba = model.predict_proba(X_test)
     y_test_bin = label_binarize(
         y_test, classes=np.arange(len(label_encoder.classes_))
     )
@@ -100,31 +104,12 @@ def evaluate_model(
         "y_test_bin": y_test_bin,
     }
 
-    # Save classification report to CSV
-    df_report = pd.DataFrame(metrics["classification_report"]).T
-    df_report.to_csv(out_dir / f"{model_name}_classification_report.csv")
-
-    print("\n" + "=" * 48)
-    print(f"  Evaluation Summary: {model_name}")
-    print("=" * 48)
-    print(
-        f"  Accuracy (95% CI) : {accuracy:.4f} ({acc_ci[0]:.4f}, {acc_ci[1]:.4f})"
-    )
-    print(f"  Precision (macro) : {precision:.4f}")
-    print(f"  Recall (macro)    : {recall:.4f}")
-    print(f"  F1 Score (macro)  : {f1:.4f}")
-    print(f"  ROC AUC (macro)   : {roc_auc:.4f}")
-    print("=" * 48 + "\n")
-
     return metrics
 
 
 if __name__ == "__main__":
-    # Custom style
-    plt.style.use("../../misc/custom_style.mplstyle")
-
     # Load test datasets
-    X_test = pd.read_csv("../../data/processed/X_test.csv")
+    X_test = pd.read_csv("../../data/processed/X_test.csv").squeeze()
     y_test = pd.read_csv("../../data/processed/y_test.csv").squeeze()
 
     # Locate result directories
@@ -133,16 +118,16 @@ if __name__ == "__main__":
     model_types = [d.name for d in base_dir.iterdir() if d.is_dir()]
     variants = ["simple", "kfold"]
 
+    # Custom style
+    plt.style.use("../../misc/custom_style.mplstyle")
+
     # Loop through each model type
     for model_type in model_types:
-        # Set paths for metrics and results
-        metrics_dir = Path("../../results/metrics/") / model_type
-        metrics_dir.mkdir(parents=True, exist_ok=True)
-
+        # Set paths for metrics, results, and images
         results_dir = base_dir / model_type
         results_dir.mkdir(parents=True, exist_ok=True)
-
-        # Prepare directory for saving metric plots
+        metrics_dir = Path("../../results/metrics/") / model_type
+        metrics_dir.mkdir(parents=True, exist_ok=True)
         images_dir = Path(f"../../images/metrics/{model_type}/")
         images_dir.mkdir(parents=True, exist_ok=True)
 
@@ -160,18 +145,31 @@ if __name__ == "__main__":
 
             # Load model and evaluate performance
             model = joblib.load(model_path)
-            metrics = evaluate_model(
-                model,
-                X_test,
-                (
-                    pd.Series(y_test)
-                    if not isinstance(y_test, (pd.Series, np.ndarray))
-                    else y_test
-                ),
-                le,
-                model_name,
-                metrics_dir,
+            metrics = evaluate_model(model, X_test, y_test, le)
+
+            # Save classification report to CSV
+            df_report = pd.DataFrame(metrics["classification_report"]).T
+            df_report.to_csv(
+                metrics_dir / f"{model_name}_classification_report.csv"
             )
+
+            # Create evaluation summary
+            summary = "=" * 48 + "\n"
+            summary += f"  Evaluation Summary: {model_name}\n"
+            summary += "=" * 48 + "\n"
+            summary += (
+                f"  Accuracy (95% CI) : {metrics['accuracy']:.4f} "
+                f"({metrics['accuracy_ci_95'][0]:.4f}, {metrics['accuracy_ci_95'][1]:.4f})\n"
+            )
+            summary += (
+                f"  Precision (macro) : {metrics['precision_macro']:.4f}\n"
+            )
+            summary += f"  Recall (macro)    : {metrics['recall_macro']:.4f}\n"
+            summary += f"  F1 Score (macro)  : {metrics['f1_macro']:.4f}\n"
+            summary += (
+                f"  ROC AUC (macro)   : {metrics['roc_auc_ovr_macro']:.4f}\n"
+            )
+            summary += "=" * 48 + "\n\n"
 
             # Plot confusion matrix for this model
             cm = metrics["confusion_matrix"]
@@ -214,9 +212,10 @@ if __name__ == "__main__":
                     tpr[best_idx],
                     thresholds[best_idx],
                 )
-
-                print(
-                    f"Class {le.classes_[j]}: Best FPR={fpr[best_idx]:.2f}, TPR={tpr[best_idx]:.2f}, Threshold={thresholds[best_idx]:.2f}, AUC={auc_value:.2f}"
+                summary += (
+                    f"Class {le.classes_[j]}: Best FPR={fpr[best_idx]:.2f}, "
+                    f"TPR={tpr[best_idx]:.2f}, Threshold={thresholds[best_idx]:.2f}, "
+                    f"AUC={auc_value:.2f}\n"
                 )
 
                 # Plot ROC curve
@@ -226,6 +225,12 @@ if __name__ == "__main__":
                     label=f"{le.classes_[j]} (AUC = {auc_value:.2f})",
                     lw=2,
                 )
+
+            # Save the summary
+            summary_path = (
+                metrics_dir / f"{model_name}_classification_summary.txt"
+            )
+            open(summary_path, "w", encoding="utf-8").write(summary)
 
             # Add diagonal and labels to ROC plot
             axs_auc[i].plot([0, 1], [0, 1], color="navy", lw=2, linestyle="--")

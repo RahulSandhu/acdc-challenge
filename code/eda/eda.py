@@ -5,7 +5,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.patches import Patch
 from sklearn.preprocessing import LabelBinarizer
-from tools.generate_short_labels import generate_short_labels
+from utils.generate_short_labels import generate_short_labels
 
 
 def compute_top_correlations(
@@ -65,24 +65,24 @@ def compute_top_correlations(
 
 
 if __name__ == "__main__":
-    # Custom style
-    plt.style.use("../../misc/custom_style.mplstyle")
-
     # Load dataset
     df = pd.read_csv("../../data/raw/acdc_radiomics.csv")
+
+    # Count columns by data type
+    dtype_summary = df.dtypes.value_counts()
+
+    # Custom style
+    plt.style.use("../../misc/custom_style.mplstyle")
 
     # Ensure output directory exists
     img_dir = Path("../../images/eda")
     img_dir.mkdir(parents=True, exist_ok=True)
 
-    # Count columns by data type
-    dtype_summary = df.dtypes.value_counts()
-
     # Plot distribution of data types
     plt.figure(figsize=(6, 4))
     dtype_summary.plot(kind="bar")
     plt.title("Distribution of Data Types")
-    plt.xlabel("Data Type")
+    plt.xlabel("")
     plt.ylabel("Number of Columns")
     plt.xticks(rotation=0)
     plt.tight_layout()
@@ -95,6 +95,7 @@ if __name__ == "__main__":
     null_counts = df.isnull().sum()
     num_null_columns = (null_counts > 0).sum()
 
+    # Print value counts
     print(f"Number of NaN columns: {num_nan_columns}")
     print(f"Number of null columns: {num_null_columns}")
     print(f"Total number of NaN values: {df.isna().sum().sum()}")
@@ -104,7 +105,7 @@ if __name__ == "__main__":
     df["class"].value_counts().plot(kind="bar")
     plt.xticks(rotation=0)
     plt.title("Distribution of Classes")
-    plt.xlabel("Class")
+    plt.xlabel("")
     plt.ylabel("Number of Patients")
     plt.tight_layout()
     plt.savefig(img_dir / "class_count.png")
@@ -132,7 +133,7 @@ if __name__ == "__main__":
         alpha=0.7,
     )
     axes[0].set_title("Height by Class")
-    axes[0].set_xlabel("Class")
+    axes[0].set_xlabel("")
     axes[0].set_ylabel("Height (cm)")
 
     # Weight distribution by class
@@ -154,7 +155,7 @@ if __name__ == "__main__":
         alpha=0.7,
     )
     axes[1].set_title("Weight by Class")
-    axes[1].set_xlabel("Class")
+    axes[1].set_xlabel("")
     axes[1].set_ylabel("Weight (kg)")
     plt.tight_layout()
     plt.savefig(img_dir / "demographics.png")
@@ -192,25 +193,18 @@ if __name__ == "__main__":
 
     # Plot BMI bands
     patches = []
+
+    # Loop through BMI band ranges, labels, and colors
     for low, high, label, color in bmi_bands:
+        # Draw a horizontal shaded band for the current BMI category
         ax.axhspan(low, high, color=color, alpha=0.1)
         patches.append(Patch(facecolor=color, alpha=0.2, label=label))
 
+    # Finalize plot with title, labels, legend, and save
     plt.title("BMI by Class with WHO Obesity Categories")
-    plt.xlabel("Class")
+    plt.xlabel("")
     plt.ylabel("BMI (kg/m²)")
-    ax.legend(
-        handles=patches,
-        loc="upper right",
-        title="WHO BMI Categories",
-        fontsize=8,
-        title_fontsize=9,
-        frameon=True,
-        facecolor="white",
-        edgecolor="black",
-        fancybox=False,
-        framealpha=1,
-    )
+    ax.legend(handles=patches, loc="upper right")
     plt.tight_layout()
     plt.savefig(img_dir / "bmi_by_class.png")
     plt.show()
@@ -236,6 +230,7 @@ if __name__ == "__main__":
     plt.title("Top 5 Correlated Features per Class")
     plt.xlabel("Pearson Correlation")
     plt.ylabel("Feature")
+    plt.legend()
     plt.tight_layout()
     plt.savefig(img_dir / "correlation.png")
     plt.show()

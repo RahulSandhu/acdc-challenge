@@ -1,6 +1,10 @@
-from typing import Any, Dict, Optional, Sequence, cast
+from pathlib import Path
+from typing import Dict, Optional, Sequence, Tuple, cast
 
+import joblib
+import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import (
@@ -11,7 +15,7 @@ from sklearn.model_selection import (
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-from tools.CoefficientThresholdLasso import CoefficientThresholdLasso
+from utils.CoefficientThresholdLasso import CoefficientThresholdLasso
 
 
 def knn(
@@ -22,75 +26,77 @@ def knn(
     X_temp: pd.DataFrame,
     y_temp: pd.Series,
     cv: StratifiedKFold,
-    knn_n: Sequence[int],
+    knn_neighbors: Sequence[int],
+    knn_weights: Sequence[str],
+    knn_metrics: Sequence[str],
     pen: float = 0.5,
-) -> Dict[str, Optional[Pipeline]]:
+) -> Tuple[Dict[str, Optional[Pipeline]], pd.DataFrame, pd.DataFrame, str]:
     """
-    Perform a two-step KNN selection pipeline using CTL and LDA.
+    Train and evaluate KNN models using two selection strategies: simple
+    train/validation split and K-fold cross-validation, both incorporating CTL
+    (Coefficient Threshold Lasso) and LDA (Linear Discriminant Analysis) as
+    preprocessing steps.
 
-    This function first performs a manual grid search using a simple train/val
-    split. Then, it uses cross-validation on the full train+val set to find the
-    best KNN parameters using CTL and LDA inside the CV pipeline.
+    The function performs:
+    1. A manual grid search on a train/validation split using CTL → LDA → KNN,
+    selecting the model based on a penalized validation accuracy that accounts
+    for overfitting (train-validation gap).
+    2. A GridSearchCV over a combined training+validation set using the same
+       CTL → LDA → KNN pipeline and penalized scoring.
 
     Inputs:
-        - X_train (pd.DataFrame): Training features (raw, already scaled).
+        - X_train (pd.DataFrame): Training features (already scaled).
         - y_train (pd.Series): Labels for the training set.
-        - X_val (pd.DataFrame): Validation features (raw, already scaled).
+        - X_val (pd.DataFrame): Validation features (already scaled).
         - y_val (pd.Series): Labels for the validation set.
-        - X_temp (pd.DataFrame): Combined training+validation features (80% of
-          total).
-        - y_temp (pd.Series): Corresponding labels for X_temp.
-        - cv (StratifiedKFold): K-Fold strategy to apply during GridSearchCV.
-        - knn_n (Sequence[int]): List of k values for KNN.
-        - pen (float, optional): Penalty weight for the train-validation score
-          gap. Default is 0.5.
+        - X_temp (pd.DataFrame): Combined training+validation features.
+        - y_temp (pd.Series): Labels corresponding to X_temp.
+        - cv (StratifiedKFold): Stratified K-Fold cross-validation strategy.
+        - knn_neighbors (Sequence[int]): Values of n_neighbors to try.
+        - knn_weights (Sequence[str]): Weight strategies to try (e.g.,
+          'uniform', 'distance').
+        - knn_metrics (Sequence[str]): Distance metrics to try (e.g.,
+          'euclidean', 'manhattan').
+        - pen (float, optional): Penalty weight applied to the train-validation
+          gap when scoring. Default is 0.5.
 
     Outputs:
-        - Dict[str, Optional[Pipeline]]: Dictionary with keys 'simple' and
-          'kfold' mapping to the best KNN pipeline from manual and CV-based
-          selection, respectively.
+        - Tuple containing:
+            - Dict[str, Optional[Pipeline]]: Trained models under keys 'simple'
+              and 'kfold'.
+            - pd.DataFrame: DataFrame summarizing the manual grid search
+              results.
+            - pd.DataFrame: DataFrame summarizing the cross-validation search
+              results.
+            - str: Summary string reporting the selected hyperparameters and
+              model performance.
     """
     # Initialize result container
     models: Dict[str, Optional[Pipeline]] = {}
 
-    # Initialize tracking variables for best model
-    best_metric = -float('inf')
-    best_model: Optional[Pipeline] = None
-    best_parameters: Dict[str, Any] = {}
-    performance: Dict[str, float] = {}
-
-    # Build parameter combinations
-    parameters_grid = [
-        {'n_neighbors': n, 'weights': w, 'metric': m}
-        for n in knn_n
-        for w in ['uniform', 'distance']
-        for m in [
-            'euclidean',
-            'manhattan',
-            'chebyshev',
-            'cosine',
-            'hamming',
-            'canberra',
-            'correlation',
-            'braycurtis',
-            'minkowski',
-        ]
-    ]
-
-    # Preprocessing pipeline: CTL → LDA
-    preprocess = Pipeline(
+    # Grid search pipeline: CTL → LDA → KNN
+    grid_pipeline_simple = Pipeline(
         [
             ('ctl', CoefficientThresholdLasso()),
             ('lda', LinearDiscriminantAnalysis()),
         ]
     )
+    grid_parameters_simple = [
+        {'n_neighbors': n, 'weights': w, 'metric': m}
+        for n in knn_neighbors
+        for w in knn_weights
+        for m in knn_metrics
+    ]
 
     # Fit on training data and transform both train and val
-    X_train_lda = preprocess.fit_transform(X_train.values, y_train)
-    X_val_lda = preprocess.transform(X_val.values)
+    X_train_lda = grid_pipeline_simple.fit_transform(X_train.values, y_train)
+    X_val_lda = grid_pipeline_simple.transform(X_val.values)
+
+    # Manual grid search with scoring collected in a dataframe
+    df_simple = []
 
     # Manual grid search (simple train-val split)
-    for params in parameters_grid:
+    for params in grid_parameters_simple:
         # Fit KNN with current parameters
         knn_mdl = KNeighborsClassifier(**params)
         knn_mdl.fit(X_train_lda, y_train)
@@ -101,76 +107,73 @@ def knn(
         gap = abs(train_score - val_score)
         penalized = val_score - pen * gap
 
-        # Track best performing model
-        if penalized > best_metric:
-            best_metric = penalized
-            best_model = Pipeline([('knn', knn_mdl)])
-            best_parameters = params
-            performance = {
-                'train_acc': train_score,
-                'val_acc': val_score,
+        # Append metrics
+        df_simple.append(
+            {
+                'params': params,
+                'train_score': train_score,
+                'val_score': val_score,
                 'gap': gap,
                 'score': penalized,
             }
+        )
+    df_simple = pd.DataFrame(df_simple)
 
-    # Rebuild full model
-    best_model = Pipeline(
+    # Pick best model from penalized score
+    best_idx_simple = df_simple['score'].idxmax()
+    best_parameters_simple = df_simple.loc[best_idx_simple, 'params']
+    performance_simple = {
+        'train_acc': df_simple.loc[best_idx_simple, 'train_score'],
+        'val_acc': df_simple.loc[best_idx_simple, 'val_score'],
+        'gap': df_simple.loc[best_idx_simple, 'gap'],
+        'score': df_simple.loc[best_idx_simple, 'score'],
+    }
+
+    # Refit best model on the full training set
+    model_simple = Pipeline(
         [
             ('ctl', CoefficientThresholdLasso()),
             ('lda', LinearDiscriminantAnalysis()),
-            ('knn', KNeighborsClassifier(**best_parameters)),
+            ('knn', KNeighborsClassifier(**best_parameters_simple)),
         ]
     )
-    best_model.fit(X_train, y_train)
-
-    # Fix for Pyright
-    best_parameters = cast(Dict[str, Any], best_parameters)
-    best_model = cast(Pipeline, best_model)
+    model_simple.fit(X_train, y_train)
 
     # Update models
-    models['simple'] = best_model
+    models['simple'] = model_simple
 
-    print("\n" + "=" * 50)
-    print("  Best Parameters (SIMPLE + CTL/LDA + KNN)")
-    print("=" * 50)
-    print(f"  n_neighbors : {best_parameters['n_neighbors']}")
-    print(f"  weights     : {best_parameters['weights']}")
-    print(f"  metric      : {best_parameters['metric']}")
-    print("-" * 50)
-    print(
-        f"Train Acc: {performance['train_acc']:.4f}, "
-        f"Val Acc: {performance['val_acc']:.4f}, "
-        f"Score: {performance['score']:.4f}"
+    # Report results
+    summary = "=" * 50 + "\n"
+    summary += "  Best Parameters (SIMPLE + CTL/LDA + KNN)\n"
+    summary += "=" * 50 + "\n"
+    summary += f"  n_neighbors : {best_parameters_simple['n_neighbors']}\n"
+    summary += f"  weights     : {best_parameters_simple['weights']}\n"
+    summary += f"  metric      : {best_parameters_simple['metric']}\n"
+    summary += "-" * 50 + "\n"
+    summary += (
+        f"Train Acc: {performance_simple['train_acc']:.4f}, "
+        f"Val Acc: {performance_simple['val_acc']:.4f}, "
+        f"Score: {performance_simple['score']:.4f}"
     )
-    print("=" * 50 + "\n")
 
     # Grid search pipeline: CTL → LDA → KNN
-    grid_pipeline = Pipeline(
+    grid_pipeline_kfold = Pipeline(
         [
             ('ctl', CoefficientThresholdLasso()),
             ('lda', LinearDiscriminantAnalysis()),
             ('knn', KNeighborsClassifier()),
         ]
     )
-    grid_parameters = {
-        'knn__n_neighbors': knn_n,
-        'knn__weights': ['uniform', 'distance'],
-        'knn__metric': [
-            'euclidean',
-            'manhattan',
-            'chebyshev',
-            'cosine',
-            'hamming',
-            'canberra',
-            'braycurtis',
-            'minkowski',
-        ],
+    grid_parameters_kfold = {
+        'knn__n_neighbors': knn_neighbors,
+        'knn__weights': knn_weights,
+        'knn__metric': knn_metrics,
     }
 
     # Run stratified K-fold grid search
-    grid_search = GridSearchCV(
-        estimator=grid_pipeline,
-        param_grid=grid_parameters,
+    grid_search_kfold = GridSearchCV(
+        estimator=grid_pipeline_kfold,
+        param_grid=grid_parameters_kfold,
         cv=cv,
         scoring='accuracy',
         return_train_score=True,
@@ -178,54 +181,56 @@ def knn(
         verbose=1,
         refit=False,
     )
-    grid_search.fit(X_temp, y_temp)
+    grid_search_kfold.fit(X_temp, y_temp)
 
     # Penalize overfit models
-    df = pd.DataFrame(grid_search.cv_results_)
-    df['gap'] = abs(df['mean_train_score'] - df['mean_test_score'])
-    df['score'] = df['mean_test_score'] - pen * df['gap']
+    df_kfold = pd.DataFrame(grid_search_kfold.cv_results_)
+    df_kfold['gap'] = abs(
+        df_kfold['mean_train_score'] - df_kfold['mean_test_score']
+    )
+    df_kfold['score'] = df_kfold['mean_test_score'] - pen * df_kfold['gap']
 
     # Pick best model from penalized score
-    best_idx = df['score'].idxmax()
-    best_parameters = df.loc[best_idx, 'params']
-    performance = {
-        'train_acc': df.loc[best_idx, 'mean_train_score'],
-        'val_acc': df.loc[best_idx, 'mean_test_score'],
-        'gap': df.loc[best_idx, 'gap'],
-        'score': df.loc[best_idx, 'score'],
+    best_idx_kfold = df_kfold['score'].idxmax()
+    best_parameters_kfold = df_kfold.loc[best_idx_kfold, 'params']
+    performance_kfold = {
+        'train_acc': df_kfold.loc[best_idx_kfold, 'mean_train_score'],
+        'val_acc': df_kfold.loc[best_idx_kfold, 'mean_test_score'],
+        'gap': df_kfold.loc[best_idx_kfold, 'gap'],
+        'score': df_kfold.loc[best_idx_kfold, 'score'],
     }
 
     # Refit best model on the full training+val set
-    best_parameters = {
-        k.replace('knn__', ''): v for k, v in best_parameters.items()
+    best_parameters_kfold = {
+        k.replace('knn__', ''): v for k, v in best_parameters_kfold.items()
     }
-    final_model = Pipeline(
+    model_kfold = Pipeline(
         [
             ('ctl', CoefficientThresholdLasso()),
             ('lda', LinearDiscriminantAnalysis()),
             ('knn', KNeighborsClassifier()),
         ]
     )
-    final_model.fit(X_temp, y_temp)
+    model_kfold.fit(X_temp, y_temp)
 
     # Update models
-    models['kfold'] = final_model
+    models['kfold'] = model_kfold
 
-    print("\n" + "=" * 50)
-    print("  Best Parameters (KFOLD + CTL/LDA + KNN)")
-    print("=" * 50)
-    print(f"  n_neighbors : {best_parameters['n_neighbors']}")
-    print(f"  weights     : {best_parameters['weights']}")
-    print(f"  metric      : {best_parameters['metric']}")
-    print("-" * 50)
-    print(
-        f"Train Acc: {performance['train_acc']:.4f}, "
-        f"Val Acc: {performance['val_acc']:.4f}, "
-        f"Score: {performance['score']:.4f}"
+    # Report results
+    summary += "\n\n" + "=" * 50 + "\n"
+    summary += "  Best Parameters (KFOLD + CTL/LDA + KNN)\n"
+    summary += "=" * 50 + "\n"
+    summary += f"  n_neighbors : {best_parameters_kfold['n_neighbors']}\n"
+    summary += f"  weights     : {best_parameters_kfold['weights']}\n"
+    summary += f"  metric      : {best_parameters_kfold['metric']}\n"
+    summary += "-" * 50 + "\n"
+    summary += (
+        f"Train Acc: {performance_kfold['train_acc']:.4f}, "
+        f"Val Acc: {performance_kfold['val_acc']:.4f}, "
+        f"Score: {performance_kfold['score']:.4f}\n"
     )
-    print("=" * 50 + "\n")
 
-    return models
+    return models, df_simple, df_kfold, summary
 
 
 if __name__ == "__main__":
@@ -235,6 +240,10 @@ if __name__ == "__main__":
     # Encode labels
     le = LabelEncoder()
     df["class"] = le.fit_transform(df["class"])
+
+    # Save the label encoder
+    Path("../../results/models/").mkdir(parents=True, exist_ok=True)
+    joblib.dump(le, "../../results/models/label_encoder.pkl")
 
     # Separate features and classes
     X = df.drop(columns=["class"])
@@ -272,31 +281,31 @@ if __name__ == "__main__":
     y_test = cast(pd.Series, y_test)
     y_temp = cast(pd.Series, y_temp)
 
-    # Get total number of training samples
-    total_samples = len(X_temp)
-
-    # Get the minimum number of samples across all classes
-    min_class_count = y_temp.value_counts().min()
-
-    # Strategy for selecting the number of folds based on dataset size:
-    #   - For very small datasets (< 100 samples), use 4 folds (or less if class count is lower)
-    #   - For moderate datasets (< 1000 samples), use 5 folds
-    #   - For large datasets (>= 1000 samples), use 10 folds
-    if total_samples < 100:
-        heuristic_K = min(4, min_class_count)
-    elif total_samples < 1000:
-        heuristic_K = min(5, min_class_count)
-    else:
-        heuristic_K = min(10, min_class_count)
+    # Save test set
+    Path("../../data/processed/").mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(X_test).to_csv("../../data/processed/X_test.csv", index=False)
+    y_test.to_frame().to_csv("../../data/processed/y_test.csv", index=False)
 
     # Define stratified K-Fold cross-validator
-    cv = StratifiedKFold(n_splits=heuristic_K, shuffle=True, random_state=42)
+    cv = StratifiedKFold(n_splits=4, shuffle=True, random_state=42)
 
     # Define KNN hyperparameters
-    knn_n = list(range(1, 57, 2))
+    knn_neighbors = list(range(1, 60, 2))
+    knn_weights = ['uniform', 'distance']
+    knn_metrics = [
+        'euclidean',
+        'manhattan',
+        'chebyshev',
+        'cosine',
+        'hamming',
+        'canberra',
+        'correlation',
+        'braycurtis',
+        'minkowski',
+    ]
 
     # Run KNN
-    models = knn(
+    models, df_simple, df_kfold, summary = knn(
         X_train=X_train,
         y_train=y_train,
         X_val=X_val,
@@ -304,6 +313,109 @@ if __name__ == "__main__":
         X_temp=X_temp,
         y_temp=y_temp,
         cv=cv,
-        knn_n=knn_n,
-        pen=0.5,
+        knn_neighbors=knn_neighbors,
+        knn_weights=knn_weights,
+        knn_metrics=knn_metrics,
     )
+
+    # Ensure output directory exists
+    Path("../../results/models/knn").mkdir(parents=True, exist_ok=True)
+    img_dir = Path("../../images/models/")
+    img_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save summary
+    Path("../../results/models/knn/knn_summary.txt").write_text(summary)
+
+    # Expand parameters for simple strategy
+    df_simple_expanded = df_simple.copy()
+    df_simple_expanded['n_neighbors'] = df_simple_expanded['params'].apply(
+        lambda d: d['n_neighbors']
+    )
+    df_simple_expanded['weights'] = df_simple_expanded['params'].apply(
+        lambda d: d['weights']
+    )
+    df_simple_expanded['metric'] = df_simple_expanded['params'].apply(
+        lambda d: d['metric']
+    )
+
+    # Expand parameters for kfold strategy
+    df_kfold_expanded = df_kfold.copy()
+    df_kfold_expanded['n_neighbors'] = df_kfold_expanded[
+        'param_knn__n_neighbors'
+    ]
+    df_kfold_expanded['weights'] = df_kfold_expanded['param_knn__weights']
+    df_kfold_expanded['metric'] = df_kfold_expanded['param_knn__metric']
+
+    # Custom style
+    plt.style.use("../../misc/custom_style.mplstyle")
+
+    # Hyperparameters evolution plot
+    fig, axs = plt.subplots(3, 1, figsize=(9, 9))
+
+    # Score vs n_neighbors
+    sns.lineplot(
+        data=df_simple_expanded,
+        x='n_neighbors',
+        y='score',
+        ax=axs[0],
+        marker='o',
+        label='Simple',
+    )
+    sns.lineplot(
+        data=df_kfold_expanded,
+        x='n_neighbors',
+        y='score',
+        ax=axs[0],
+        marker='X',
+        linestyle='--',
+        label='KFold',
+    )
+    axs[0].set_title('n_neighbors')
+    axs[0].set_xlabel('')
+
+    # Score vs weights
+    sns.lineplot(
+        data=df_simple_expanded,
+        x='weights',
+        y='score',
+        ax=axs[1],
+        marker='o',
+        label='Simple',
+    )
+    sns.lineplot(
+        data=df_kfold_expanded,
+        x='weights',
+        y='score',
+        ax=axs[1],
+        marker='X',
+        linestyle='--',
+        label='KFold',
+    )
+    axs[1].set_title('weights')
+    axs[1].set_xlabel('')
+
+    # Score vs metric
+    sns.lineplot(
+        data=df_simple_expanded,
+        x='metric',
+        y='score',
+        ax=axs[2],
+        marker='o',
+        label='Simple',
+    )
+    sns.lineplot(
+        data=df_kfold_expanded,
+        x='metric',
+        y='score',
+        ax=axs[2],
+        marker='X',
+        linestyle='--',
+        label='KFold',
+    )
+    axs[2].set_title('metric')
+    axs[2].set_xlabel('')
+
+    # Save figure
+    plt.tight_layout()
+    plt.savefig(img_dir / "knn_hyperparameters_evolution.png")
+    plt.show()

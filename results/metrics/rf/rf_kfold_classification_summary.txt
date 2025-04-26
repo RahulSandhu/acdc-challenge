@@ -1,0 +1,15 @@
+================================================
+  Evaluation Summary: rf_kfold
+================================================
+  Accuracy (95% CI) : 0.8500 (0.6935, 1.0065)
+  Precision (macro) : 0.8600
+  Recall (macro)    : 0.8500
+  F1 Score (macro)  : 0.8492
+  ROC AUC (macro)   : 0.9469
+================================================
+
+Class DCM: Best FPR=0.00, TPR=0.75, Threshold=0.64, AUC=0.94
+Class HCM: Best FPR=0.00, TPR=1.00, Threshold=0.41, AUC=1.00
+Class MINF: Best FPR=0.25, TPR=1.00, Threshold=0.10, AUC=0.89
+Class NOR: Best FPR=0.12, TPR=1.00, Threshold=0.20, AUC=0.92
+Class RV: Best FPR=0.06, TPR=1.00, Threshold=0.54, AUC=0.98

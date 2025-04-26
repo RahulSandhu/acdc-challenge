@@ -1,0 +1,15 @@
+================================================
+  Evaluation Summary: knn_simple
+================================================
+  Accuracy (95% CI) : 0.7000 (0.4992, 0.9008)
+  Precision (macro) : 0.7800
+  Recall (macro)    : 0.7000
+  F1 Score (macro)  : 0.7137
+  ROC AUC (macro)   : 0.8812
+================================================
+
+Class DCM: Best FPR=0.12, TPR=0.75, Threshold=0.20, AUC=0.84
+Class HCM: Best FPR=0.12, TPR=0.75, Threshold=0.80, AUC=0.87
+Class MINF: Best FPR=0.25, TPR=1.00, Threshold=0.20, AUC=0.84
+Class NOR: Best FPR=0.00, TPR=0.75, Threshold=0.80, AUC=0.86
+Class RV: Best FPR=0.00, TPR=1.00, Threshold=1.00, AUC=1.00

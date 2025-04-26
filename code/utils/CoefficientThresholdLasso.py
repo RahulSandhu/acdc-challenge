@@ -48,10 +48,8 @@ class CoefficientThresholdLasso(BaseEstimator, TransformerMixin):
         self.lambda_path = lambda_path
         self.lambda_grid = lambda_grid
         self.cv_folds = cv_folds
-
         self.lambda_opt = None
         self.coe_thropt = None
-
         self.selected_features_ = None
         self.coefs_lasso_path = None
         self.lambda_grid_mse = None
@@ -102,7 +100,7 @@ class CoefficientThresholdLasso(BaseEstimator, TransformerMixin):
                 y_train, y_val = y_encoded[train_idx], y_encoded[val_idx]
 
                 # Train a Lasso model on the training fold with current lambda
-                model = Lasso(alpha=float(lam), max_iter=50000, tol=1e-5)
+                model = Lasso(alpha=float(lam), max_iter=80000, tol=1e-3)
                 model.fit(X_train, y_train)
 
                 # Predict on the validation fold
@@ -114,11 +112,12 @@ class CoefficientThresholdLasso(BaseEstimator, TransformerMixin):
             # After all folds, store the average MSE for this lambda
             lambda_grid_mse.append(np.mean(mse_folds))
 
+        # Update values
         self.lambda_grid_mse = lambda_grid_mse
         self.lambda_opt = self.lambda_grid[np.argmin(lambda_grid_mse)]
 
         # Step 5: Final Lasso with optimal λ
-        final_lasso = Lasso(alpha=self.lambda_opt, max_iter=50000, tol=1e-5)
+        final_lasso = Lasso(alpha=self.lambda_opt, max_iter=80000, tol=1e-3)
         final_lasso.fit(X_filtered, y_encoded)
         h = final_lasso.coef_
         abs_h = np.abs(h)
@@ -151,7 +150,7 @@ class CoefficientThresholdLasso(BaseEstimator, TransformerMixin):
             if mask.sum() == 0:
                 coe_thr_mse[coe_thr] = float("inf")
             else:
-                model = Lasso(alpha=self.lambda_opt, max_iter=50000, tol=1e-5)
+                model = Lasso(alpha=self.lambda_opt, max_iter=80000, tol=1e-3)
                 model.fit(X_train[:, mask], y_train)
                 y_pred = model.predict(X_test[:, mask])
                 coe_thr_mse[coe_thr] = ((y_test - y_pred) ** 2).mean()
@@ -159,6 +158,7 @@ class CoefficientThresholdLasso(BaseEstimator, TransformerMixin):
             # Increment threshold with step size 0.001
             coe_thr = round(coe_thr + 0.001, 3)
 
+        # Update values
         self.coe_thr_values = coe_thr_values
         self.coe_thr_mse = [coe_thr_mse[thr] for thr in coe_thr_values]
         self.coe_thropt = min(coe_thr_mse.items(), key=lambda x: x[1])[0]

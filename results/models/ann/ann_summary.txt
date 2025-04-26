@@ -1,0 +1,19 @@
+==================================================
+  Best Parameters (SIMPLE + CTL/LDA + ANN)
+==================================================
+  hidden_layers : 2
+  hidden_size   : 100
+  learning_rate : 0.001
+  activation_fn : Sigmoid
+--------------------------------------------------
+Train Acc: 0.9333, Val Acc: 0.9500, Score: 0.9417
+
+==================================================
+  Best Parameters (KFOLD + CTL/LDA + ANN)
+==================================================
+  hidden_layers : 2
+  hidden_size   : 32
+  learning_rate : 0.01
+  activation_fn : Sigmoid
+--------------------------------------------------
+Train Acc: 0.8500, Val Acc: 0.7125, Score: 0.6438

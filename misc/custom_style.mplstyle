@@ -35,7 +35,7 @@ lines.markersize  : 6
 
 # LEGEND
 legend.fontsize   : 10
-legend.frameon    : False
+legend.frameon    : True
 legend.loc        : best
 
 # SAVEFIG

@@ -1,0 +1,15 @@
+================================================
+  Evaluation Summary: svm_kfold
+================================================
+  Accuracy (95% CI) : 0.9000 (0.7685, 1.0315)
+  Precision (macro) : 0.9200
+  Recall (macro)    : 0.9000
+  F1 Score (macro)  : 0.8984
+  ROC AUC (macro)   : 0.9719
+================================================
+
+Class DCM: Best FPR=0.00, TPR=1.00, Threshold=0.35, AUC=1.00
+Class HCM: Best FPR=0.00, TPR=0.75, Threshold=0.62, AUC=0.91
+Class MINF: Best FPR=0.19, TPR=1.00, Threshold=0.30, AUC=0.95
+Class NOR: Best FPR=0.00, TPR=1.00, Threshold=0.32, AUC=1.00
+Class RV: Best FPR=0.00, TPR=1.00, Threshold=0.61, AUC=1.00

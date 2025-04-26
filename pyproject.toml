@@ -15,7 +15,7 @@ dependencies = [
 
 [tool.setuptools]
 package-dir = {"" = "code"}
-packages = ["eda", "models", "metrics", "processing", "tools"]
+packages = ["eda", "models", "metrics", "processing", "utils"]
 
 [tool.black]
 line-length = 79

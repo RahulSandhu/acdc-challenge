@@ -257,7 +257,7 @@ def rf(
 
 if __name__ == "__main__":
     # Load dataset
-    df = pd.read_csv("../../data/raw/acdc_radiomics.csv")
+    df = pd.read_csv("../../data/datasets/raw_acdc_radiomics.csv")
 
     # Encode labels
     le = LabelEncoder()
@@ -304,17 +304,17 @@ if __name__ == "__main__":
     y_temp = cast(pd.Series, y_temp)
 
     # Save test set
-    Path("../../data/processed/").mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(X_test).to_csv("../../data/processed/X_test.csv", index=False)
-    y_test.to_frame().to_csv("../../data/processed/y_test.csv", index=False)
+    Path("../../data/testing/").mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(X_test).to_csv("../../data/testing/X_test.csv", index=False)
+    y_test.to_frame().to_csv("../../data/testing/y_test.csv", index=False)
 
     # Define stratified K-Fold cross-validator
     cv = StratifiedKFold(n_splits=4, shuffle=True, random_state=42)
 
     # Define RF hyperparameters
-    n_estimators = [10, 50, 100, 200]
-    max_depth = [None, 3, 5, 10, 20, 30]
-    min_samples_leaf = [1, 2, 4, 8, 10, 12, 14, 16, 18, 20]
+    n_estimators = [10, 25, 50, 75, 100, 150, 200, 300]
+    max_depth = [2, 3, 5, 7, 10, 15, 20, 25, 30, 40, 50]
+    min_samples_leaf = [1, 2, 4, 8]
 
     # Run RF
     models, df_simple, df_kfold, summary = rf(
@@ -364,7 +364,7 @@ if __name__ == "__main__":
     plt.style.use("../../misc/custom_style.mplstyle")
 
     # Hyperparameters evolution plot
-    fig, axs = plt.subplots(3, 1, figsize=(9, 9))
+    fig, axs = plt.subplots(3, 1)
 
     # Score vs n_estimators
     sns.lineplot(
@@ -382,10 +382,12 @@ if __name__ == "__main__":
         ax=axs[0],
         marker='X',
         linestyle='--',
-        label='KFold',
+        label='K-Fold',
     )
     axs[0].set_title('n_estimators')
     axs[0].set_xlabel('')
+    axs[0].set_ylabel('Mean Score')
+    axs[0].legend(loc='upper right')
 
     # Score vs max_depth
     sns.lineplot(
@@ -403,10 +405,12 @@ if __name__ == "__main__":
         ax=axs[1],
         marker='X',
         linestyle='--',
-        label='KFold',
+        label='K-Fold',
     )
     axs[1].set_title('max_depth')
     axs[1].set_xlabel('')
+    axs[1].set_ylabel('Mean Score')
+    axs[1].legend(loc='upper right')
 
     # Score vs min_samples_leaf
     sns.lineplot(
@@ -424,14 +428,14 @@ if __name__ == "__main__":
         ax=axs[2],
         marker='X',
         linestyle='--',
-        label='KFold',
+        label='K-Fold',
     )
     axs[2].set_title('min_samples_leaf')
     axs[2].set_xlabel('')
+    axs[2].set_ylabel('Mean Score')
+    axs[2].legend(loc='upper right')
 
     # Save figure
     plt.tight_layout()
-    plt.savefig(
-        img_dir / "rf_hyperparameters_evolution.png", bbox_inches='tight'
-    )
+    plt.savefig(img_dir / "rf_hyperparameters_evolution.png")
     plt.show()

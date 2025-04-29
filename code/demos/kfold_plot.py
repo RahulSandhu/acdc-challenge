@@ -9,7 +9,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 # Load dataset
-df = pd.read_csv("../../data/raw/acdc_radiomics.csv")
+df = pd.read_csv("../../data/datasets/raw_acdc_radiomics.csv")
 
 # Distinct colors for classes
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
@@ -64,38 +64,31 @@ img_dir.mkdir(parents=True, exist_ok=True)
 plt.style.use("../../misc/custom_style.mplstyle")
 
 # Initialize the figure and box height for the fold blocks
-plt.figure(figsize=(14, 5))
+plt.figure()
 box_height = 0.8
 
 # Iterate over each fold to visualize the train/val assignment
 for fold_idx, (train_idx, test_idx) in enumerate(cv.split(X_temp, y_temp)):
-    # Determine size and location of the current validation block
     block_size = len(test_idx)
     block_start = fold_idx * block_size
     block_end = block_start + block_size
 
+    # Initialize an array to determine plotting positions for each sample
     plot_positions = np.empty(n_samples, dtype=int)
     remaining_positions = [
         i for i in range(n_samples) if i < block_start or i >= block_end
     ]
-
-    # Assign test samples into their block positions
     for i, idx in enumerate(test_idx):
         plot_positions[idx] = block_start + i
-
-    # Assign train samples into the remaining space
     for i, idx in enumerate(train_idx):
         plot_positions[idx] = remaining_positions[i]
 
-    # Get sorted sample indices
+    # Sort samples according to their plotting positions
     sorted_idx = np.argsort(plot_positions)
 
-    # Draw rectangles per sample with color per class
+    # Plot rectangles representing each sample, marking validation samples with hatching
     for i, sample_idx in enumerate(sorted_idx):
-        # Choose color based on class label
         c = colors[y_temp.iloc[sample_idx]]
-
-        # Use pattern to indicate validation samples
         is_test = sample_idx in test_idx
         rect = mpatches.Rectangle(
             (i, fold_idx - box_height / 2),
@@ -108,20 +101,16 @@ for fold_idx, (train_idx, test_idx) in enumerate(cv.split(X_temp, y_temp)):
         )
         plt.gca().add_patch(rect)
 
-    # Get class label distributions in training and validation sets
+    # Compute class distributions separately for training and validation sets
     y_train_fold = y_temp.iloc[train_idx]
     y_val_fold = y_temp.iloc[test_idx]
-
-    # Count samples per class in training and validation
     train_counts = y_train_fold.value_counts().sort_index()
     val_counts = y_val_fold.value_counts().sort_index()
 
-    # Print class distribution for this fold
     print(f"Fold {fold_idx + 1} class distribution:")
 
-    # Print number of samples per class in train and val
+    # Print the number of samples per class for training and validation sets
     for cls in sorted(y_temp.unique()):
-        # Get sample counts
         train_n = train_counts.get(cls, 0)
         val_n = val_counts.get(cls, 0)
         print(f"  Class {cls}: train={train_n}, val={val_n}")

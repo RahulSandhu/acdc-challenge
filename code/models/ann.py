@@ -1,3 +1,4 @@
+import random
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, cast
 
@@ -22,6 +23,24 @@ from utils.CoefficientThresholdLasso import CoefficientThresholdLasso
 
 
 class SimpleANN(nn.Module):
+    """
+    Fully-connected Artificial Neural Network (ANN) for classification tasks.
+
+    This class builds a feedforward neural network with:
+    1. An input layer
+    2. A user-defined number of hidden layers
+    3. An output layer
+    4. User-specified activation functions between layers
+
+    Attributes:
+        - input_dim (int): Number of input features.
+        - hidden_size (int): Number of neurons in each hidden layer.
+        - hidden_layers (int): Number of hidden layers.
+        - output_dim (int): Number of output classes.
+        - activation_fn (nn.Module): Activation function to use (e.g.,
+          nn.ReLU).
+    """
+
     def __init__(
         self,
         input_dim,
@@ -30,17 +49,49 @@ class SimpleANN(nn.Module):
         output_dim,
         activation_fn,
     ):
+        """
+        Initialize the SimpleANN model structure.
+
+        Inputs:
+            - input_dim (int): Number of input features.
+            - hidden_size (int): Number of neurons in each hidden layer.
+            - hidden_layers (int): Number of hidden layers.
+            - output_dim (int): Number of output classes.
+            - activation_fn (nn.Module): Activation function class (e.g.,
+              nn.ReLU).
+        """
+        # PyTorch setup
         super(SimpleANN, self).__init__()
+
+        # List to hold the layers sequentially
         layers = []
+
+        # First layer: input dimension to hidden layer
         layers.append(nn.Linear(input_dim, hidden_size))
         layers.append(activation_fn())
+
+        # Hidden layers: hidden_size → hidden_size
         for _ in range(hidden_layers - 1):
             layers.append(nn.Linear(hidden_size, hidden_size))
             layers.append(activation_fn())
+
+        # Output layer: hidden_size → output_dim
         layers.append(nn.Linear(hidden_size, output_dim))
+
+        # Combine all layers into a single model
         self.network = nn.Sequential(*layers)
 
     def forward(self, x):
+        """
+        Perform a forward pass through the network.
+
+        Inputs:
+            - x (torch.Tensor): Input tensor with shape (batch_size,
+              input_dim).
+
+        Outputs:
+            - torch.Tensor: Output tensor with shape (batch_size, output_dim).
+        """
         return self.network(x)
 
 
@@ -52,10 +103,12 @@ def ann(
     X_temp: pd.DataFrame,
     y_temp: pd.Series,
     cv: StratifiedKFold,
-    hidden_layers=Sequence[int],
-    hidden_size=Sequence[int],
-    learning_rate=Sequence[float],
-    activation_fn=Sequence[Any],
+    hidden_layers: Sequence[int],
+    hidden_size: Sequence[int],
+    learning_rate: Sequence[float],
+    activation_fn: Sequence[Any],
+    optimizer: Sequence[Any],
+    max_epochs: Sequence[int],
     pen: float = 0.5,
 ) -> Tuple[Dict[str, Optional[Pipeline]], pd.DataFrame, pd.DataFrame, str]:
     """
@@ -85,6 +138,9 @@ def ann(
         - learning_rate (Sequence[float]): Learning rates to try.
         - activation_fn (Sequence[Any]): Activation functions to try (e.g.,
           nn.ReLU, nn.Tanh).
+        - optimizer (Sequence[Any]): Optimizers to try (e.g.,
+          torch.optim.Adam).
+        - max_epochs (Sequence[int]): Max epochs to try.
         - pen (float, optional): Penalty weight applied to the train-validation
           gap when scoring. Default is 0.5.
 
@@ -115,11 +171,15 @@ def ann(
             'hidden_size': hs,
             'learning_rate': lr,
             'activation_fn': afn,
+            'optimizer': opt,
+            'max_epochs': me,
         }
         for hl in hidden_layers
         for hs in hidden_size
         for lr in learning_rate
         for afn in activation_fn
+        for opt in optimizer
+        for me in max_epochs
     ]
 
     # Fit on training data and transform both train and val
@@ -135,14 +195,14 @@ def ann(
         ann_mdl = NeuralNetClassifier(
             module=SimpleANN,
             module__input_dim=X_train_lda.shape[1],
+            module__output_dim=len(set(y_train)),
             module__hidden_size=params['hidden_size'],
             module__hidden_layers=params['hidden_layers'],
-            module__output_dim=len(set(y_train)),
             module__activation_fn=params['activation_fn'],
-            max_epochs=30,
+            max_epochs=params['max_epochs'],
             lr=params['learning_rate'],
-            optimizer=torch.optim.Adam,
-            criterion=nn.CrossEntropyLoss,
+            optimizer=params['optimizer'],
+            criterion=cast(Any, nn.CrossEntropyLoss),
             verbose=0,
         )
         ann_mdl.fit(
@@ -191,18 +251,18 @@ def ann(
                 NeuralNetClassifier(
                     module=SimpleANN,
                     module__input_dim=X_train_lda.shape[1],
+                    module__output_dim=len(set(y_train)),
                     module__hidden_size=best_parameters_simple['hidden_size'],
                     module__hidden_layers=best_parameters_simple[
                         'hidden_layers'
                     ],
-                    module__output_dim=len(set(y_train)),
                     module__activation_fn=best_parameters_simple[
                         'activation_fn'
                     ],
-                    max_epochs=30,
+                    max_epochs=best_parameters_simple['max_epochs'],
                     lr=best_parameters_simple['learning_rate'],
-                    optimizer=torch.optim.Adam,
-                    criterion=nn.CrossEntropyLoss,
+                    optimizer=best_parameters_simple['optimizer'],
+                    criterion=cast(Any, nn.CrossEntropyLoss),
                     verbose=0,
                 ),
             ),
@@ -215,6 +275,7 @@ def ann(
     # Update models
     models['simple'] = model_simple
 
+    # Report results
     summary = "=" * 50 + "\n"
     summary += "  Best Parameters (SIMPLE + CTL/LDA + ANN)\n"
     summary += "=" * 50 + "\n"
@@ -222,6 +283,10 @@ def ann(
     summary += f"  hidden_size   : {best_parameters_simple['hidden_size']}\n"
     summary += f"  learning_rate : {best_parameters_simple['learning_rate']}\n"
     summary += f"  activation_fn : {best_parameters_simple['activation_fn'].__name__}\n"
+    summary += (
+        f"  optimizer     : {best_parameters_simple['optimizer'].__name__}\n"
+    )
+    summary += f"  max_epochs    : {best_parameters_simple['max_epochs']}\n"
     summary += "-" * 50 + "\n"
     summary += (
         f"Train Acc: {performance_simple['train_acc']:.4f}, "
@@ -240,19 +305,27 @@ def ann(
                     module=SimpleANN,
                     module__input_dim=len(np.unique(y_temp)) - 1,
                     module__output_dim=len(set(y_temp)),
-                    max_epochs=30,
+                    module__hidden_size=32,
+                    module__hidden_layers=1,
+                    module__activation_fn=nn.ReLU,
+                    max_epochs=100,
+                    lr=0.001,
                     optimizer=torch.optim.Adam,
-                    criterion=nn.CrossEntropyLoss,
+                    criterion=cast(Any, nn.CrossEntropyLoss),
                     verbose=0,
                 ),
             ),
         ]
     )
+
+    # Define hyperparameter grid
     grid_parameters_kfold = {
         'ann__module__hidden_layers': hidden_layers,
         'ann__module__hidden_size': hidden_size,
         'ann__module__activation_fn': activation_fn,
         'ann__lr': learning_rate,
+        'ann__optimizer': optimizer,
+        'ann__max_epochs': max_epochs,
     }
 
     # Run stratified K-fold grid search
@@ -310,10 +383,10 @@ def ann(
                     module__activation_fn=best_parameters_kfold[
                         'module__activation_fn'
                     ],
-                    max_epochs=30,
+                    max_epochs=best_parameters_kfold['max_epochs'],
                     lr=best_parameters_kfold['lr'],
-                    optimizer=torch.optim.Adam,
-                    criterion=nn.CrossEntropyLoss,
+                    optimizer=best_parameters_kfold['optimizer'],
+                    criterion=cast(Any, nn.CrossEntropyLoss),
                     verbose=0,
                 ),
             ),
@@ -338,6 +411,10 @@ def ann(
     )
     summary += f"  learning_rate : {best_parameters_kfold['lr']}\n"
     summary += f"  activation_fn : {best_parameters_kfold['module__activation_fn'].__name__}\n"
+    summary += (
+        f"  optimizer     : {best_parameters_kfold['optimizer'].__name__}\n"
+    )
+    summary += f"  max_epochs    : {best_parameters_kfold['max_epochs']}\n"
     summary += "-" * 50 + "\n"
     summary += (
         f"Train Acc: {performance_kfold['train_acc']:.4f}, "
@@ -350,7 +427,7 @@ def ann(
 
 if __name__ == "__main__":
     # Load dataset
-    df = pd.read_csv("../../data/raw/acdc_radiomics.csv")
+    df = pd.read_csv("../../data/datasets/raw_acdc_radiomics.csv")
 
     # Encode labels
     le = LabelEncoder()
@@ -397,18 +474,29 @@ if __name__ == "__main__":
     y_temp = cast(pd.Series, y_temp)
 
     # Save test set
-    Path("../../data/processed/").mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(X_test).to_csv("../../data/processed/X_test.csv", index=False)
-    y_test.to_frame().to_csv("../../data/processed/y_test.csv", index=False)
+    Path("../../data/testing/").mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(X_test).to_csv("../../data/testing/X_test.csv", index=False)
+    y_test.to_frame().to_csv("../../data/testing/y_test.csv", index=False)
 
     # Define stratified K-Fold cross-validator
     cv = StratifiedKFold(n_splits=4, shuffle=True, random_state=42)
 
-    # Define ANN hyperparameters
-    hidden_layers_list = [1, 2, 3]
-    hidden_size_list = [32, 100, 128]
-    learning_rate_list = [0.01, 0.001, 0.0001]
-    activation_fn_list = [nn.ReLU, nn.Tanh, nn.Sigmoid]
+    # ANN Hyperparameters
+    hidden_layers = [1, 2, 3]
+    hidden_size = [32, 100, 128]
+    learning_rate = [0.01, 0.001, 0.0001]
+    activation_fn = [nn.ReLU, nn.Tanh, nn.Sigmoid]
+    optimizer = [torch.optim.Adam, torch.optim.SGD]
+    max_epochs = [50, 100, 200]
+
+    # Set random seeds
+    random.seed(42)
+    np.random.seed(42)
+    torch.manual_seed(42)
+    torch.cuda.manual_seed(42)
+    torch.cuda.manual_seed_all(42)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
     # Run ANN
     models, df_simple, df_kfold, summary = ann(
@@ -419,10 +507,12 @@ if __name__ == "__main__":
         X_temp=X_temp,
         y_temp=y_temp,
         cv=cv,
-        hidden_layers=hidden_layers_list,
-        hidden_size=hidden_size_list,
-        learning_rate=learning_rate_list,
-        activation_fn=activation_fn_list,
+        hidden_layers=hidden_layers,
+        hidden_size=hidden_size,
+        learning_rate=learning_rate,
+        activation_fn=activation_fn,
+        optimizer=optimizer,
+        max_epochs=max_epochs,
     )
 
     # Ensure output directory exists
@@ -447,6 +537,12 @@ if __name__ == "__main__":
     df_simple_expanded['activation_fn'] = df_simple_expanded['params'].apply(
         lambda d: d['activation_fn'].__name__
     )
+    df_simple_expanded['optimizer'] = df_simple_expanded['params'].apply(
+        lambda d: d['optimizer'].__name__
+    )
+    df_simple_expanded['max_epochs'] = df_simple_expanded['params'].apply(
+        lambda d: d['max_epochs']
+    )
 
     # Expand parameters for kfold strategy
     df_kfold_expanded = df_kfold.copy()
@@ -460,12 +556,18 @@ if __name__ == "__main__":
     df_kfold_expanded['activation_fn'] = df_kfold_expanded[
         'param_ann__module__activation_fn'
     ].apply(lambda fn: fn.__name__)
+    df_kfold_expanded['optimizer'] = df_kfold_expanded[
+        'param_ann__optimizer'
+    ].apply(lambda opt: opt.__name__)
+    df_kfold_expanded['max_epochs'] = df_kfold_expanded[
+        'param_ann__max_epochs'
+    ]
 
     # Custom style
     plt.style.use("../../misc/custom_style.mplstyle")
 
     # Hyperparameters evolution plot
-    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+    fig, axs = plt.subplots(3, 2, figsize=(14, 10))
     axs = axs.flatten()
 
     # Score vs hidden_layers
@@ -484,8 +586,12 @@ if __name__ == "__main__":
         ax=axs[0],
         marker='X',
         linestyle='--',
-        label='KFold',
+        label='K-Fold',
     )
+    axs[0].set_title('hidden_layers')
+    axs[0].set_xlabel('')
+    axs[0].set_ylabel('Mean Score')
+    axs[0].legend(loc='upper right')
 
     # Score vs hidden_size
     sns.lineplot(
@@ -503,8 +609,12 @@ if __name__ == "__main__":
         ax=axs[1],
         marker='X',
         linestyle='--',
-        label='KFold',
+        label='K-Fold',
     )
+    axs[1].set_title('hidden_size')
+    axs[1].set_xlabel('')
+    axs[1].set_ylabel('Mean Score')
+    axs[1].legend(loc='upper right')
 
     # Score vs learning_rate
     sns.lineplot(
@@ -522,8 +632,12 @@ if __name__ == "__main__":
         ax=axs[2],
         marker='X',
         linestyle='--',
-        label='KFold',
+        label='K-Fold',
     )
+    axs[2].set_title('learning_rate')
+    axs[2].set_xlabel('')
+    axs[2].set_ylabel('Mean Score')
+    axs[2].legend(loc='upper right')
 
     # Score vs activation_fn
     sns.lineplot(
@@ -541,30 +655,61 @@ if __name__ == "__main__":
         ax=axs[3],
         marker='X',
         linestyle='--',
-        label='KFold',
+        label='K-Fold',
     )
     axs[3].tick_params(axis='x', rotation=30)
+    axs[3].set_title('activation_fn')
+    axs[3].set_xlabel('')
+    axs[3].set_ylabel('Mean Score')
+    axs[3].legend(loc='upper right')
+
+    # Score vs optimizer
+    sns.lineplot(
+        data=df_simple_expanded,
+        x='optimizer',
+        y='score',
+        ax=axs[4],
+        marker='o',
+        label='Simple',
+    )
+    sns.lineplot(
+        data=df_kfold_expanded,
+        x='optimizer',
+        y='score',
+        ax=axs[4],
+        marker='X',
+        linestyle='--',
+        label='K-Fold',
+    )
+    axs[4].tick_params(axis='x', rotation=30)
+    axs[4].set_title('optimizer')
+    axs[4].set_xlabel('')
+    axs[4].legend(loc='upper right')
+
+    # Score vs max_epochs
+    sns.lineplot(
+        data=df_simple_expanded,
+        x='max_epochs',
+        y='score',
+        ax=axs[5],
+        marker='o',
+        label='Simple',
+    )
+    sns.lineplot(
+        data=df_kfold_expanded,
+        x='max_epochs',
+        y='score',
+        ax=axs[5],
+        marker='X',
+        linestyle='--',
+        label='K-Fold',
+    )
+    axs[5].set_title('max_epochs')
+    axs[5].set_xlabel('')
+    axs[5].set_ylabel('Mean Score')
+    axs[5].legend(loc='upper right')
 
     # Save figure
-    fig.suptitle('ANN Hyperparameters Evolution', fontweight='bold')
     plt.tight_layout()
     plt.savefig(img_dir / "ann_hyperparameters_evolution.png")
     plt.show()
-
-    # Prepare X_test
-    X_test_tensor = X_test.values.astype('float32')
-
-    # Test simple model
-    simple_test_preds = models['simple'].predict(X_test_tensor)
-    simple_test_acc = accuracy_score(y_test, simple_test_preds)
-
-    # Test kfold model
-    kfold_test_preds = models['kfold'].predict(X_test_tensor)
-    kfold_test_acc = accuracy_score(y_test, kfold_test_preds)
-
-    # Print results
-    print("=" * 50)
-    print("  Test Results")
-    print("=" * 50)
-    print(f"Simple Model Test Accuracy : {simple_test_acc:.4f}")
-    print(f"KFold Model Test Accuracy  : {kfold_test_acc:.4f}")

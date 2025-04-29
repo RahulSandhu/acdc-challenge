@@ -7,7 +7,7 @@ def generate_short_labels(
     features: Sequence[str], max_len: int = 15
 ) -> List[str]:
     """
-    Generate concise feature labels by removing the 'original_' prefix and
+    Generate short feature labels by removing the 'original_' prefix and
     truncating the label to a maximum length.
 
     Inputs:
@@ -16,7 +16,7 @@ def generate_short_labels(
 
     Outputs:
         - List[str]: A list of shortened labels with 'original_' removed and
-          long names truncated with ellipsis.
+          long names truncated.
     """
     # Initialize list for short labels
     short_labels = []
@@ -33,7 +33,7 @@ def generate_short_labels(
 
 if __name__ == "__main__":
     # Load dataset
-    df = pd.read_csv("../../data/raw/acdc_radiomics.csv")
+    df = pd.read_csv("../../data/datasets/raw_acdc_radiomics.csv")
 
     # Separate features and classes
     X = df.drop(columns=["class"])

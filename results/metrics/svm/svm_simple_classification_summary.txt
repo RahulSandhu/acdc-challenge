@@ -2,14 +2,14 @@
   Evaluation Summary: svm_simple
 ================================================
   Accuracy (95% CI) : 0.6000 (0.3853, 0.8147)
-  Precision (macro) : 0.5867
+  Precision (macro) : 0.7250
   Recall (macro)    : 0.6000
-  F1 Score (macro)  : 0.5771
+  F1 Score (macro)  : 0.6014
   ROC AUC (macro)   : 0.8656
 ================================================
 
 Class DCM: Best FPR=0.19, TPR=1.00, Threshold=0.11, AUC=0.92
-Class HCM: Best FPR=0.38, TPR=1.00, Threshold=0.18, AUC=0.83
-Class MINF: Best FPR=0.38, TPR=1.00, Threshold=0.24, AUC=0.75
-Class NOR: Best FPR=0.00, TPR=0.75, Threshold=0.38, AUC=0.83
-Class RV: Best FPR=0.00, TPR=1.00, Threshold=0.55, AUC=1.00
+Class HCM: Best FPR=0.38, TPR=1.00, Threshold=0.22, AUC=0.83
+Class MINF: Best FPR=0.25, TPR=0.75, Threshold=0.31, AUC=0.73
+Class NOR: Best FPR=0.06, TPR=0.75, Threshold=0.35, AUC=0.84
+Class RV: Best FPR=0.00, TPR=1.00, Threshold=0.45, AUC=1.00

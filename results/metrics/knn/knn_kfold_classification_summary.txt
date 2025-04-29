@@ -5,11 +5,11 @@
   Precision (macro) : 0.8333
   Recall (macro)    : 0.8000
   F1 Score (macro)  : 0.8029
-  ROC AUC (macro)   : 0.9672
+  ROC AUC (macro)   : 0.9547
 ================================================
 
-Class DCM: Best FPR=0.00, TPR=1.00, Threshold=0.40, AUC=1.00
-Class HCM: Best FPR=0.19, TPR=1.00, Threshold=0.20, AUC=0.97
-Class MINF: Best FPR=0.12, TPR=1.00, Threshold=0.60, AUC=0.98
-Class NOR: Best FPR=0.25, TPR=1.00, Threshold=0.20, AUC=0.91
-Class RV: Best FPR=0.19, TPR=1.00, Threshold=0.20, AUC=0.97
+Class DCM: Best FPR=0.12, TPR=1.00, Threshold=0.22, AUC=0.98
+Class HCM: Best FPR=0.00, TPR=0.75, Threshold=0.67, AUC=0.95
+Class MINF: Best FPR=0.12, TPR=1.00, Threshold=0.44, AUC=0.93
+Class NOR: Best FPR=0.19, TPR=1.00, Threshold=0.33, AUC=0.94
+Class RV: Best FPR=0.06, TPR=1.00, Threshold=0.33, AUC=0.98

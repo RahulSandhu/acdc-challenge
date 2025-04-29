@@ -1,44 +1,53 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Tuple
 
 import torch.nn as nn
+import torch.optim as optim
 
 
 def parse_best_params(
     file_path: str,
-    simple: bool = True,
-    simple_lines: Optional[Tuple[int, int]] = (4, 7),
-    kfold_lines: Optional[Tuple[int, int]] = (13, 16),
+    line_range: Tuple[int, int],
 ) -> Dict[str, Any]:
     """
-    Parse best model parameters from a summary text file.
+    Parse best model parameters from a summary text file within a specified
+    line range.
 
     Inputs:
         - file_path (str): Path to the summary text file.
-        - simple (bool): Whether to extract parameters from the 'simple' model
-          block or from the 'kfold' model block. Defaults to True.
-        - simple_lines (tuple): Line range (start, end) for simple block. Defaults to (4, 7).
-        - kfold_lines (tuple): Line range (start, end) for kfold block. Defaults to (13, 16).
+        - line_range (tuple): Line range (start, end) to extract parameters.
 
     Outputs:
         - Dict[str, Any]: A dictionary with parameter names as keys and
           parameter values as values.
     """
+    # Initialize dictionary to hold parameters
     params = {}
 
-    # Map string to actual nn.Module activation classes
+    # Mapping activation function names to nn classes
     act_fn_mapping = {
         'ReLU': nn.ReLU,
         'Sigmoid': nn.Sigmoid,
         'Tanh': nn.Tanh,
     }
 
+    # Mapping optimizer names to torch.optim classes
+    optimizer_mapping = {
+        'Adam': optim.Adam,
+        'SGD': optim.SGD,
+    }
+
+    # Open the summary text file and read all lines
     with open(file_path, 'r') as f:
         lines = f.readlines()
 
-        # Choose correct block
-        start, end = simple_lines if simple else kfold_lines
-        param_lines = lines[start:end]
+        # Fix for Pyright
+        assert line_range is not None
 
+        # Grab the selected block of lines
+        start, end = line_range
+        param_lines = lines[start : end + 1]
+
+        # Parse each line in the selected block
         for line in param_lines:
             parts = line.strip().split(':')
 
@@ -47,11 +56,12 @@ def parse_best_params(
                 key = key.strip()
                 value = value.strip()
 
-                # Special case: activation_fn must map to nn.Module
+                # Activation function mapping
                 if key == 'activation_fn':
-                    value_converted = act_fn_mapping.get(
-                        value, value
-                    )  # fallback to original if unknown
+                    value_converted = act_fn_mapping.get(value, value)
+                # Optimizer mapping
+                elif key == 'optimizer':
+                    value_converted = optimizer_mapping.get(value, value)
                 else:
                     if value.lower() == 'none':
                         value_converted = None
@@ -64,25 +74,17 @@ def parse_best_params(
                             except ValueError:
                                 value_converted = value
 
+                # Save the parsed key-value pair
                 params[key] = value_converted
 
     return params
 
 
 if __name__ == "__main__":
-    # Example usage with defaults
+    # Example usage for KNN KFold model
     best_params_knn_kfold = parse_best_params(
-        "../../results/models/knn/knn_summary.txt", simple=False
+        "../../results/models/knn/knn_summary.txt",
+        line_range=(12, 15),
     )
-    print("\nKFold Best Params:")
+    print("\nKNN KFold Best Params:")
     print(best_params_knn_kfold)
-
-    # Example usage for ANN
-    best_params_ann_simple = parse_best_params(
-        "../../results/models/ann/ann_summary.txt",
-        simple=True,
-        simple_lines=(3, 7),
-        kfold_lines=(13, 17),
-    )
-    print("\nANN Simple Best Params:")
-    print(best_params_ann_simple)

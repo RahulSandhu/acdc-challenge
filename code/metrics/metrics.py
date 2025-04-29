@@ -38,25 +38,8 @@ def evaluate_model(
     Outputs:
         - dict: A dictionary of evaluation metrics including.
     """
-    # Check if model is a skorch NeuralNet inside a Pipeline
-    is_skorch = (
-        any("NeuralNet" in str(step[1].__class__) for step in model.steps)
-        if hasattr(model, "steps")
-        else False
-    )
-
-    # If skorch, X_test must be float32
-    X_input = (
-        X_test.values.astype('float32')
-        if isinstance(X_test, pd.DataFrame)
-        else X_test
-    )
-    if is_skorch:
-        y_pred = model.predict(X_input)
-        y_proba = model.predict_proba(X_input)
-    else:
-        y_pred = model.predict(X_test)
-        y_proba = model.predict_proba(X_test)
+    # Predict labels for the test set
+    y_pred = model.predict(X_test)
 
     # Compute performance metrics
     accuracy = accuracy_score(y_test, y_pred)
@@ -78,6 +61,7 @@ def evaluate_model(
     acc_ci = (accuracy - margin, accuracy + margin)
 
     # Predict probabilities and prepare binarized true labels for ROC-AUC
+    y_proba = model.predict_proba(X_test)
     y_test_bin = label_binarize(
         y_test, classes=np.arange(len(label_encoder.classes_))
     )
@@ -109,8 +93,8 @@ def evaluate_model(
 
 if __name__ == "__main__":
     # Load test datasets
-    X_test = pd.read_csv("../../data/processed/X_test.csv").squeeze()
-    y_test = pd.read_csv("../../data/processed/y_test.csv").squeeze()
+    X_test = pd.read_csv("../../data/testing/X_test.csv").squeeze()
+    y_test = pd.read_csv("../../data/testing/y_test.csv").squeeze()
 
     # Locate result directories
     base_dir = Path("../../results/models/")
@@ -131,21 +115,23 @@ if __name__ == "__main__":
         images_dir = Path(f"../../images/metrics/{model_type}/")
         images_dir.mkdir(parents=True, exist_ok=True)
 
-        # Initialize figures for confusion matrices and ROC curves
-        fig_cm, axs_cm = plt.subplots(1, 2, figsize=(10, 8))
-        fig_auc, axs_auc = plt.subplots(1, 2, figsize=(10, 8))
-        axs_cm = axs_cm.ravel()
-        axs_auc = axs_auc.ravel()
-
         # Iterate over each variant of the model
-        for i, variant in enumerate(variants):
+        for variant in variants:
             # Define full model name and path
             model_name = f"{model_type}_{variant}"
             model_path = results_dir / f"{model_name}.pkl"
 
             # Load model and evaluate performance
             model = joblib.load(model_path)
-            metrics = evaluate_model(model, X_test, y_test, le)
+
+            # For ANN models, cast X_test to float32 before evaluating
+            if model_type == 'ann':
+                X_input = X_test.values.astype('float32')
+            else:
+                X_input = X_test
+
+            # Evaluate model
+            metrics = evaluate_model(model, X_input, y_test, le)
 
             # Save classification report to CSV
             df_report = pd.DataFrame(metrics["classification_report"]).T
@@ -171,7 +157,10 @@ if __name__ == "__main__":
             )
             summary += "=" * 48 + "\n\n"
 
-            # Plot confusion matrix for this model
+            # Create a figure with 2 subplots: Confusion matrix and ROC-AUC
+            fig, axs = plt.subplots(1, 2)
+
+            # Plot confusion matrix
             cm = metrics["confusion_matrix"]
             sns.heatmap(
                 cm,
@@ -180,13 +169,13 @@ if __name__ == "__main__":
                 cmap="Blues",
                 xticklabels=le.classes_,
                 yticklabels=le.classes_,
-                ax=axs_cm[i],
+                ax=axs[0],
             )
-            axs_cm[i].set_title(model_name)
-            axs_cm[i].set_xlabel("Predicted")
-            axs_cm[i].set_ylabel("True")
+            axs[0].set_title(f"Confusion Matrix - {model_name}")
+            axs[0].set_xlabel("Predicted")
+            axs[0].set_ylabel("True")
 
-            # Prepare data for ROC curve computation
+            # Plot ROC AUC curves
             y_test_bin = metrics["y_test_bin"]
             y_proba = metrics["y_proba"]
             n_classes = y_test_bin.shape[1]
@@ -195,7 +184,7 @@ if __name__ == "__main__":
             best_fpr_tpr = {}
             auc_values = {}
 
-            # Compute ROC curve for each class
+            # Compute ROC-AUC curve for each clas
             for j in range(n_classes):
                 # Collect true positive rates, false positive rates and thresholds
                 fpr, tpr, thresholds = roc_curve(
@@ -204,7 +193,7 @@ if __name__ == "__main__":
                 auc_value = auc(fpr, tpr)
                 auc_values[j] = auc_value
 
-                # Find the best threshold Younden's J Statistic
+                # Find best threshold using Youden's J
                 youden_j = tpr - fpr
                 best_idx = np.argmax(youden_j)
                 best_fpr_tpr[j] = (
@@ -219,29 +208,28 @@ if __name__ == "__main__":
                 )
 
                 # Plot ROC curve
-                axs_auc[i].plot(
+                axs[1].plot(
                     fpr,
                     tpr,
                     label=f"{le.classes_[j]} (AUC = {auc_value:.2f})",
                     lw=2,
                 )
 
-            # Save the summary
+            # Add diagonal and labels to ROC plot
+            axs[1].plot([0, 1], [0, 1], color="navy", linestyle="--")
+            axs[1].set_title(f"ROC-AUC - {model_name}")
+            axs[1].set_xlabel("False Positive Rate")
+            axs[1].set_ylabel("True Positive Rate")
+            axs[1].legend(loc="lower right")
+
+            # Save evaluation summary
             summary_path = (
                 metrics_dir / f"{model_name}_classification_summary.txt"
             )
             open(summary_path, "w", encoding="utf-8").write(summary)
 
-            # Add diagonal and labels to ROC plot
-            axs_auc[i].plot([0, 1], [0, 1], color="navy", lw=2, linestyle="--")
-            axs_auc[i].set_title(model_name)
-            axs_auc[i].set_xlabel("False Positive Rate")
-            axs_auc[i].set_ylabel("True Positive Rate")
-            axs_auc[i].legend(loc="lower right")
-
-        # Save figures
-        fig_cm.tight_layout()
-        fig_auc.tight_layout()
-        fig_cm.savefig(images_dir / f"{model_type}_confusion_matrix.png")
-        fig_auc.savefig(images_dir / f"{model_type}_roc_auc.png")
-        plt.show()
+            # Save figure
+            fig.tight_layout()
+            fig.savefig(images_dir / f"{model_name}_metrics.png")
+            plt.show()
+            plt.close(fig)

@@ -94,9 +94,6 @@ def svm(
     X_train_lda = grid_pipeline_simple.fit_transform(X_train.values, y_train)
     X_val_lda = grid_pipeline_simple.transform(X_val.values)
 
-    print(X_train_lda.shape)
-    print(X_val_lda.shape)
-
     # Manual grid search with scoring collected in a dataframe
     df_simple = []
 
@@ -254,7 +251,7 @@ def svm(
 
 if __name__ == "__main__":
     # Load dataset
-    df = pd.read_csv("../../data/raw/acdc_radiomics.csv")
+    df = pd.read_csv("../../data/datasets/raw_acdc_radiomics.csv")
 
     # Encode labels
     le = LabelEncoder()
@@ -301,9 +298,9 @@ if __name__ == "__main__":
     y_temp = cast(pd.Series, y_temp)
 
     # Save test set
-    Path("../../data/processed/").mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(X_test).to_csv("../../data/processed/X_test.csv", index=False)
-    y_test.to_frame().to_csv("../../data/processed/y_test.csv", index=False)
+    Path("../../data/testing/").mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(X_test).to_csv("../../data/testing/X_test.csv", index=False)
+    y_test.to_frame().to_csv("../../data/testing/y_test.csv", index=False)
 
     # Define stratified K-Fold cross-validator
     cv = StratifiedKFold(n_splits=4, shuffle=True, random_state=42)
@@ -361,7 +358,7 @@ if __name__ == "__main__":
     plt.style.use("../../misc/custom_style.mplstyle")
 
     # Hyperparameters evolution plot
-    fig, axs = plt.subplots(3, 1, figsize=(9, 9))
+    fig, axs = plt.subplots(3, 1)
 
     # Score vs kernel
     sns.lineplot(
@@ -379,8 +376,12 @@ if __name__ == "__main__":
         ax=axs[0],
         marker='X',
         linestyle='--',
-        label='KFold',
+        label='K-Fold',
     )
+    axs[0].set_title('kernel')
+    axs[0].set_xlabel('')
+    axs[0].set_ylabel('Mean Score')
+    axs[0].legend(loc='upper right')
 
     # Score vs gamma
     sns.lineplot(
@@ -398,8 +399,12 @@ if __name__ == "__main__":
         ax=axs[1],
         marker='X',
         linestyle='--',
-        label='KFold',
+        label='K-Fold',
     )
+    axs[1].set_title('gamma')
+    axs[1].set_xlabel('')
+    axs[1].set_ylabel('Mean Score')
+    axs[1].legend(loc='upper right')
 
     # Score vs C
     sns.lineplot(
@@ -417,11 +422,14 @@ if __name__ == "__main__":
         ax=axs[2],
         marker='X',
         linestyle='--',
-        label='KFold',
+        label='K-Fold',
     )
+    axs[2].set_title('C')
+    axs[2].set_xlabel('')
+    axs[2].set_ylabel('Mean Score')
+    axs[2].legend(loc='upper right')
 
     # Save figure
-    fig.suptitle('SVM Hyperparameters Evolution', fontweight='bold')
     plt.tight_layout()
     plt.savefig(img_dir / "svm_hyperparameters_evolution.png")
     plt.show()

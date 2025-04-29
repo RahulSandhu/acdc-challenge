@@ -210,7 +210,7 @@ class CoefficientThresholdLasso(BaseEstimator, TransformerMixin):
 
 if __name__ == "__main__":
     # Load dataset
-    df = pd.read_csv("../../data/raw/acdc_radiomics.csv")
+    df = pd.read_csv("../../data/datasets/raw_acdc_radiomics.csv")
 
     # Encode labels
     le = LabelEncoder()

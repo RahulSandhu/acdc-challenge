@@ -1,0 +1,15 @@
+================================================
+  Evaluation Summary: ann_kfold
+================================================
+  Accuracy (95% CI) : 0.7000 (0.4992, 0.9008)
+  Precision (macro) : 0.7976
+  Recall (macro)    : 0.7000
+  F1 Score (macro)  : 0.6688
+  ROC AUC (macro)   : 0.9437
+================================================
+
+Class DCM: Best FPR=0.12, TPR=1.00, Threshold=0.40, AUC=0.97
+Class HCM: Best FPR=0.19, TPR=1.00, Threshold=0.22, AUC=0.95
+Class MINF: Best FPR=0.31, TPR=1.00, Threshold=0.18, AUC=0.86
+Class NOR: Best FPR=0.19, TPR=1.00, Threshold=0.23, AUC=0.95
+Class RV: Best FPR=0.06, TPR=1.00, Threshold=0.55, AUC=0.98

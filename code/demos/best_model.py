@@ -23,7 +23,7 @@ df = pd.DataFrame(data)
 # Plot settings
 x = np.arange(len(df["Class"]))
 width = 0.25
-fig, ax = plt.subplots(figsize=(10, 6))
+fig, ax = plt.subplots(figsize=(14, 10))
 
 # Define color palette
 colors = {

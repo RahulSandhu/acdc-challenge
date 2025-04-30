@@ -158,7 +158,7 @@ if __name__ == "__main__":
             summary += "=" * 48 + "\n\n"
 
             # Create a figure with 2 subplots: Confusion matrix and ROC-AUC
-            fig, axs = plt.subplots(1, 2)
+            figcm, axscm = plt.subplots(1, 2)
 
             # Plot confusion matrix
             cm = metrics["confusion_matrix"]
@@ -169,11 +169,11 @@ if __name__ == "__main__":
                 cmap="Blues",
                 xticklabels=le.classes_,
                 yticklabels=le.classes_,
-                ax=axs[0],
+                ax=axscm[0],
             )
-            axs[0].set_title(f"Confusion Matrix - {model_name}")
-            axs[0].set_xlabel("Predicted")
-            axs[0].set_ylabel("True")
+            axscm[0].set_title(f"Confusion Matrix - {model_name}")
+            axscm[0].set_xlabel("Predicted")
+            axscm[0].set_ylabel("True")
 
             # Plot ROC AUC curves
             y_test_bin = metrics["y_test_bin"]
@@ -208,7 +208,7 @@ if __name__ == "__main__":
                 )
 
                 # Plot ROC curve
-                axs[1].plot(
+                axscm[1].plot(
                     fpr,
                     tpr,
                     label=f"{le.classes_[j]} (AUC = {auc_value:.2f})",
@@ -216,11 +216,11 @@ if __name__ == "__main__":
                 )
 
             # Add diagonal and labels to ROC plot
-            axs[1].plot([0, 1], [0, 1], color="navy", linestyle="--")
-            axs[1].set_title(f"ROC-AUC - {model_name}")
-            axs[1].set_xlabel("False Positive Rate")
-            axs[1].set_ylabel("True Positive Rate")
-            axs[1].legend(loc="lower right")
+            axscm[1].plot([0, 1], [0, 1], color="navy", linestyle="--")
+            axscm[1].set_title(f"ROC-AUC - {model_name}")
+            axscm[1].set_xlabel("False Positive Rate")
+            axscm[1].set_ylabel("True Positive Rate")
+            axscm[1].legend(loc="lower right")
 
             # Save evaluation summary
             summary_path = (
@@ -229,7 +229,84 @@ if __name__ == "__main__":
             open(summary_path, "w", encoding="utf-8").write(summary)
 
             # Save figure
-            fig.tight_layout()
-            fig.savefig(images_dir / f"{model_name}_metrics.png")
+            figcm.tight_layout()
+            figcm.savefig(images_dir / f"{model_name}_metrics.png")
             plt.show()
-            plt.close(fig)
+
+            # Bar chart for each model's class-wise metrics
+            df_class_metrics = df_report.loc[
+                le.classes_, ["precision", "recall", "f1-score"]
+            ].copy()
+            df_class_metrics.columns = ["Precision", "Recall", "F1-Score"]
+            x = np.arange(len(df_class_metrics))
+            width = 0.25
+            figbar, axbar = plt.subplots(figsize=(14, 10))
+
+            # Define color palette
+            colors = {
+                "Precision": "#7FB3D5",
+                "Recall": "#F7DC6F",
+                "F1-Score": "#82E0AA",
+            }
+
+            # Bar configuration
+            bars1 = axbar.bar(
+                x - width,
+                df_class_metrics["Precision"],
+                width,
+                label='Precision',
+                color=colors["Precision"],
+                edgecolor='black',
+                linewidth=0.8,
+            )
+            bars2 = axbar.bar(
+                x,
+                df_class_metrics["Recall"],
+                width,
+                label='Recall',
+                color=colors["Recall"],
+                edgecolor='black',
+                linewidth=0.8,
+            )
+            bars3 = axbar.bar(
+                x + width,
+                df_class_metrics["F1-Score"],
+                width,
+                label='F1-Score',
+                color=colors["F1-Score"],
+                edgecolor='black',
+                linewidth=0.8,
+            )
+
+            # Axes configuration
+            axbar.set_ylabel('Score', fontsize=12)
+            axbar.set_title(
+                f'Class-wise Precision, Recall and F1-Score ({model_name})',
+                fontsize=14,
+                weight='bold',
+            )
+            axbar.set_xticks(x)
+            axbar.set_xticklabels(df_class_metrics.index, fontsize=11)
+            axbar.set_ylim(0, 1.1)
+            axbar.legend(bbox_to_anchor=(1.01, 1), loc='upper left')
+
+            # Annotate bars with values
+            for bars in [bars1, bars2, bars3]:
+                for bar in bars:
+                    height = bar.get_height()
+                    axbar.annotate(
+                        f'{height:.2f}',
+                        xy=(bar.get_x() + bar.get_width() / 2, height),
+                        xytext=(0, 4),
+                        textcoords="offset points",
+                        ha='center',
+                        va='bottom',
+                        fontsize=10,
+                    )
+
+            # Save figure
+            figbar.tight_layout()
+            figbar.savefig(
+                images_dir / f"{model_name}_class_wise_metrics.png", dpi=300
+            )
+            plt.show()

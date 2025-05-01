@@ -9,7 +9,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.linear_model import Lasso, lasso_path
 from sklearn.model_selection import KFold, train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder
 
 
 class CoefficientThresholdLasso(BaseEstimator, TransformerMixin):
@@ -210,50 +210,21 @@ class CoefficientThresholdLasso(BaseEstimator, TransformerMixin):
 
 if __name__ == "__main__":
     # Load dataset
-    df = pd.read_csv("../../data/datasets/raw_acdc_radiomics.csv")
-
-    # Encode labels
-    le = LabelEncoder()
-    df["class"] = le.fit_transform(df["class"])
+    df = pd.read_csv("../../data/datasets/norm_acdc_radiomics.csv")
+    X_train = pd.read_csv("../../data/simple/X_temp_norm.csv").squeeze()
+    y_train = pd.read_csv("../../data/simple/y_temp_norm.csv").squeeze()
 
     # Separate features and classes
     X = df.drop(columns=["class"])
     y = df["class"]
 
-    # Apply StandardScaler
-    scaler = StandardScaler()
-    scaled_features = scaler.fit_transform(X)
-    scaled_df = pd.DataFrame(scaled_features, columns=X.columns)
-
-    # Normalized dataframe
-    norm_df = pd.concat([scaled_df, y.reset_index(drop=True)], axis=1)
-
-    # Separate features and classes
-    X = norm_df.drop(columns=["class"])
-    y = norm_df["class"]
-
     # Ensure output directory exists
-    img_dir = Path("../../images/feature_selection/")
+    img_dir = Path("../../images/lasso/")
     img_dir.mkdir(parents=True, exist_ok=True)
-
-    # Split before feature selection
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
-    )
-
-    # Fix for Pyright
-    X_train = cast(pd.DataFrame, X_train)
-    X_test = cast(pd.DataFrame, X_test)
-    y_train = cast(pd.Series, y_train)
-    y_test = cast(pd.Series, y_test)
 
     # Fit feature selector
     ctl = CoefficientThresholdLasso()
     ctl.fit(X_train, y_train)
-
-    # Apply selection to both train and test sets
-    X_train_selected = X_train.iloc[:, ctl.selected_features_]
-    X_test_selected = X_test.iloc[:, ctl.selected_features_]
 
     # Fix for Pyright
     assert ctl.lambda_values is not None
@@ -271,9 +242,9 @@ if __name__ == "__main__":
         plt.plot(ctl.lambda_values, ctl.coefs_lasso_path[i], linewidth=1)
     plt.axvline(
         x=ctl.lambda_opt,
-        color='red',
-        linestyle='--',
-        label=f'λ opt = {ctl.lambda_opt:.3f}',
+        color="red",
+        linestyle="--",
+        label=f"λ opt = {ctl.lambda_opt:.3f}",
     )
     plt.title("Lasso Coefficient Paths")
     plt.xlabel("Lambda")
@@ -290,17 +261,17 @@ if __name__ == "__main__":
 
     # Plot MSE vs Lambda
     plt.figure(figsize=(8, 5))
-    plt.plot(ctl.lambda_grid, ctl.lambda_grid_mse, marker='o', label="MSE")
+    plt.plot(ctl.lambda_grid, ctl.lambda_grid_mse, marker="o", label="MSE")
     plt.plot(
         ctl.lambda_opt,
         opt_mse,
-        'ro',
-        label=f'Min MSE: {opt_mse:.4f} at λ = {ctl.lambda_opt:.3f}',
+        "ro",
+        label=f"Min MSE: {opt_mse:.4f} at λ = {ctl.lambda_opt:.3f}",
     )
     plt.title("Loss (MSE) vs Lambda")
     plt.xlabel("Lambda")
     plt.ylabel("Mean Squared Error")
-    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.grid(True, linestyle="--", alpha=0.7)
     plt.legend()
     plt.tight_layout()
     plt.savefig(img_dir / "mse_vs_lambda.png")
@@ -312,17 +283,17 @@ if __name__ == "__main__":
 
     # Plot MSE vs Coefficient Threshold
     plt.figure(figsize=(8, 5))
-    plt.plot(ctl.coe_thr_values, ctl.coe_thr_mse, marker='o', label="MSE")
+    plt.plot(ctl.coe_thr_values, ctl.coe_thr_mse, marker="o", label="MSE")
     plt.plot(
         ctl.coe_thropt,
         opt_mse,
-        'ro',
-        label=f'Min MSE: {opt_mse:.4f} at θ = {ctl.coe_thropt:.3f}',
+        "ro",
+        label=f"Min MSE: {opt_mse:.4f} at θ = {ctl.coe_thropt:.3f}",
     )
     plt.title("Loss (MSE) vs Coefficient Threshold")
     plt.xlabel("Coefficient Threshold")
     plt.ylabel("Mean Squared Error")
-    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.grid(True, linestyle="--", alpha=0.7)
     plt.legend()
     plt.tight_layout()
     plt.savefig(img_dir / "mse_vs_threshold.png")

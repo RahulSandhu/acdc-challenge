@@ -1,20 +1,14 @@
 from pathlib import Path
 from typing import Dict, Optional, Sequence, Tuple, cast
 
-import joblib
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import (
-    GridSearchCV,
-    StratifiedKFold,
-    train_test_split,
-)
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import LabelEncoder, StandardScaler
 from utils.CoefficientThresholdLasso import CoefficientThresholdLasso
 
 
@@ -25,7 +19,6 @@ def rf(
     y_val: pd.Series,
     X_temp: pd.DataFrame,
     y_temp: pd.Series,
-    cv: StratifiedKFold,
     n_estimators: Sequence[int],
     max_depth: Sequence[Optional[int]],
     min_samples_leaf: Sequence[int],
@@ -52,7 +45,6 @@ def rf(
         - y_val (pd.Series): Labels for the validation set.
         - X_temp (pd.DataFrame): Combined training+validation features.
         - y_temp (pd.Series): Labels corresponding to X_temp.
-        - cv (StratifiedKFold): Stratified K-Fold cross-validation strategy.
         - n_estimators (Sequence[int]): Number of trees to try in the forest.
         - max_depth (Sequence[Optional[int]]): Maximum depth values to try (use
           None for unlimited depth).
@@ -79,15 +71,15 @@ def rf(
     # Grid search pipeline: CTL → LDA → RF
     grid_pipeline_simple = Pipeline(
         [
-            ('ctl', CoefficientThresholdLasso()),
-            ('lda', LinearDiscriminantAnalysis()),
+            ("ctl", CoefficientThresholdLasso()),
+            ("lda", LinearDiscriminantAnalysis()),
         ]
     )
     grid_parameters_simple = [
         {
-            'n_estimators': n,
-            'max_depth': d,
-            'min_samples_leaf': s,
+            "n_estimators": n,
+            "max_depth": d,
+            "min_samples_leaf": s,
         }
         for n in n_estimators
         for d in max_depth
@@ -116,54 +108,48 @@ def rf(
         # Append metrics
         df_simple.append(
             {
-                'params': params,
-                'train_score': train_score,
-                'val_score': val_score,
-                'gap': gap,
-                'score': penalized,
+                "params": params,
+                "train_score": train_score,
+                "val_score": val_score,
+                "gap": gap,
+                "score": penalized,
             }
         )
     df_simple = pd.DataFrame(df_simple)
 
     # Pick best model from penalized score
-    best_idx_simple = df_simple['score'].idxmax()
-    best_parameters_simple = df_simple.loc[best_idx_simple, 'params']
+    best_idx_simple = df_simple["score"].idxmax()
+    best_parameters_simple = df_simple.loc[best_idx_simple, "params"]
     performance_simple = {
-        'train_acc': df_simple.loc[best_idx_simple, 'train_score'],
-        'val_acc': df_simple.loc[best_idx_simple, 'val_score'],
-        'gap': df_simple.loc[best_idx_simple, 'gap'],
-        'score': df_simple.loc[best_idx_simple, 'score'],
+        "train_acc": df_simple.loc[best_idx_simple, "train_score"],
+        "val_acc": df_simple.loc[best_idx_simple, "val_score"],
+        "gap": df_simple.loc[best_idx_simple, "gap"],
+        "score": df_simple.loc[best_idx_simple, "score"],
     }
 
     # Refit best model on the full training set
     model_simple = Pipeline(
         [
-            ('ctl', CoefficientThresholdLasso()),
-            ('lda', LinearDiscriminantAnalysis()),
+            ("ctl", CoefficientThresholdLasso()),
+            ("lda", LinearDiscriminantAnalysis()),
             (
-                'rf',
-                RandomForestClassifier(
-                    **best_parameters_simple, random_state=SEED
-                ),
+                "rf",
+                RandomForestClassifier(**best_parameters_simple, random_state=SEED),
             ),
         ]
     )
     model_simple.fit(X_train, y_train)
 
     # Update models
-    models['simple'] = model_simple
+    models["simple"] = model_simple
 
     # Report results
     summary = "=" * 50 + "\n"
     summary += "  Best Parameters (SIMPLE + CTL/LDA + RF)\n"
     summary += "=" * 50 + "\n"
-    summary += (
-        f"  n_estimators     : {best_parameters_simple['n_estimators']}\n"
-    )
+    summary += f"  n_estimators     : {best_parameters_simple['n_estimators']}\n"
     summary += f"  max_depth        : {best_parameters_simple['max_depth']}\n"
-    summary += (
-        f"  min_samples_leaf : {best_parameters_simple['min_samples_leaf']}\n"
-    )
+    summary += f"  min_samples_leaf : {best_parameters_simple['min_samples_leaf']}\n"
     summary += "-" * 50 + "\n"
     summary += (
         f"Train Acc: {performance_simple['train_acc']:.4f}, "
@@ -174,23 +160,26 @@ def rf(
     # Grid search pipeline: CTL → LDA → RF
     grid_pipeline_kfold = Pipeline(
         [
-            ('ctl', CoefficientThresholdLasso()),
-            ('lda', LinearDiscriminantAnalysis()),
-            ('rf', RandomForestClassifier(random_state=SEED)),
+            ("ctl", CoefficientThresholdLasso()),
+            ("lda", LinearDiscriminantAnalysis()),
+            ("rf", RandomForestClassifier(random_state=SEED)),
         ]
     )
     grid_parameters_kfold = {
-        'rf__n_estimators': n_estimators,
-        'rf__max_depth': max_depth,
-        'rf__min_samples_leaf': min_samples_leaf,
+        "rf__n_estimators": n_estimators,
+        "rf__max_depth": max_depth,
+        "rf__min_samples_leaf": min_samples_leaf,
     }
+
+    # Define stratified K-Fold cross-validator
+    cv = StratifiedKFold(n_splits=4, shuffle=True, random_state=42)
 
     # Run stratified K-fold grid search
     grid_search_kfold = GridSearchCV(
         estimator=grid_pipeline_kfold,
         param_grid=grid_parameters_kfold,
         cv=cv,
-        scoring='accuracy',
+        scoring="accuracy",
         return_train_score=True,
         n_jobs=-1,
         verbose=1,
@@ -200,31 +189,29 @@ def rf(
 
     # Penalize overfit models
     df_kfold = pd.DataFrame(grid_search_kfold.cv_results_)
-    df_kfold['gap'] = abs(
-        df_kfold['mean_train_score'] - df_kfold['mean_test_score']
-    )
-    df_kfold['score'] = df_kfold['mean_test_score'] - pen * df_kfold['gap']
+    df_kfold["gap"] = abs(df_kfold["mean_train_score"] - df_kfold["mean_test_score"])
+    df_kfold["score"] = df_kfold["mean_test_score"] - pen * df_kfold["gap"]
 
     # Pick best model from penalized score
-    best_idx_kfold = df_kfold['score'].idxmax()
-    best_parameters_kfold = df_kfold.loc[best_idx_kfold, 'params']
+    best_idx_kfold = df_kfold["score"].idxmax()
+    best_parameters_kfold = df_kfold.loc[best_idx_kfold, "params"]
     performance_kfold = {
-        'train_acc': df_kfold.loc[best_idx_kfold, 'mean_train_score'],
-        'val_acc': df_kfold.loc[best_idx_kfold, 'mean_test_score'],
-        'gap': df_kfold.loc[best_idx_kfold, 'gap'],
-        'score': df_kfold.loc[best_idx_kfold, 'score'],
+        "train_acc": df_kfold.loc[best_idx_kfold, "mean_train_score"],
+        "val_acc": df_kfold.loc[best_idx_kfold, "mean_test_score"],
+        "gap": df_kfold.loc[best_idx_kfold, "gap"],
+        "score": df_kfold.loc[best_idx_kfold, "score"],
     }
 
     # Refit best model on the full training+val set
     best_parameters_kfold = {
-        k.replace('rf__', ''): v for k, v in best_parameters_kfold.items()
+        k.replace("rf__", ""): v for k, v in best_parameters_kfold.items()
     }
     model_kfold = Pipeline(
         [
-            ('ctl', CoefficientThresholdLasso()),
-            ('lda', LinearDiscriminantAnalysis()),
+            ("ctl", CoefficientThresholdLasso()),
+            ("lda", LinearDiscriminantAnalysis()),
             (
-                'rf',
+                "rf",
                 RandomForestClassifier(random_state=SEED),
             ),
         ]
@@ -232,19 +219,15 @@ def rf(
     model_kfold.fit(X_temp, y_temp)
 
     # Update models
-    models['kfold'] = model_kfold
+    models["kfold"] = model_kfold
 
     # Report results
     summary += "\n\n" + "=" * 50 + "\n"
-    summary += "  Best Parameters (KFOLD + CTL/LDA + RF)\n"
+    summary += "  Best Parameters (K-FOLD + CTL/LDA + RF)\n"
     summary += "=" * 50 + "\n"
-    summary += (
-        f"  n_estimators     : {best_parameters_kfold['n_estimators']}\n"
-    )
+    summary += f"  n_estimators     : {best_parameters_kfold['n_estimators']}\n"
     summary += f"  max_depth        : {best_parameters_kfold['max_depth']}\n"
-    summary += (
-        f"  min_samples_leaf : {best_parameters_kfold['min_samples_leaf']}\n"
-    )
+    summary += f"  min_samples_leaf : {best_parameters_kfold['min_samples_leaf']}\n"
     summary += "-" * 50 + "\n"
     summary += (
         f"Train Acc: {performance_kfold['train_acc']:.4f}, "
@@ -257,59 +240,20 @@ def rf(
 
 if __name__ == "__main__":
     # Load dataset
-    df = pd.read_csv("../../data/datasets/raw_acdc_radiomics.csv")
-
-    # Encode labels
-    le = LabelEncoder()
-    df["class"] = le.fit_transform(df["class"])
-
-    # Save the label encoder
-    Path("../../results/models/").mkdir(parents=True, exist_ok=True)
-    joblib.dump(le, "../../results/models/label_encoder.pkl")
-
-    # Separate features and classes
-    X = df.drop(columns=["class"])
-    y = df["class"]
-
-    # Apply StandardScaler
-    scaler = StandardScaler()
-    scaled_features = scaler.fit_transform(X)
-    scaled_df = pd.DataFrame(scaled_features, columns=X.columns)
-
-    # Normalized dataframe
-    norm_df = pd.concat([scaled_df, y.reset_index(drop=True)], axis=1)
-
-    # Separate features and classes
-    X = norm_df.drop(columns=["class"])
-    y = norm_df["class"]
-
-    # 80% Train+Val, 20% Test
-    X_temp, X_test, y_temp, y_test = train_test_split(
-        X, y, test_size=0.2, stratify=y, random_state=42
-    )
-
-    # 75% Train, 25% Val from the 80% (→ 60% train, 20% val)
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_temp, y_temp, test_size=0.25, stratify=y_temp, random_state=42
-    )
+    X_temp = pd.read_csv("../../data/kfold/X_temp_norm.csv").squeeze()
+    X_train = pd.read_csv("../../data/simple/X_train_norm.csv").squeeze()
+    X_val = pd.read_csv("../../data/simple/X_val_norm.csv").squeeze()
+    y_temp = pd.read_csv("../../data/kfold/y_temp_norm.csv").squeeze()
+    y_train = pd.read_csv("../../data/simple/y_train_norm.csv").squeeze()
+    y_val = pd.read_csv("../../data/simple/y_val_norm.csv").squeeze()
 
     # Fix for Pyright
+    X_temp = cast(pd.DataFrame, X_temp)
     X_train = cast(pd.DataFrame, X_train)
     X_val = cast(pd.DataFrame, X_val)
-    X_test = cast(pd.DataFrame, X_test)
-    X_temp = cast(pd.DataFrame, X_temp)
+    y_temp = cast(pd.Series, y_temp)
     y_train = cast(pd.Series, y_train)
     y_val = cast(pd.Series, y_val)
-    y_test = cast(pd.Series, y_test)
-    y_temp = cast(pd.Series, y_temp)
-
-    # Save test set
-    Path("../../data/testing/").mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(X_test).to_csv("../../data/testing/X_test.csv", index=False)
-    y_test.to_frame().to_csv("../../data/testing/y_test.csv", index=False)
-
-    # Define stratified K-Fold cross-validator
-    cv = StratifiedKFold(n_splits=4, shuffle=True, random_state=42)
 
     # Define RF hyperparameters
     n_estimators = [10, 25, 50, 75, 100, 150, 200, 300]
@@ -324,7 +268,6 @@ if __name__ == "__main__":
         y_val=y_val,
         X_temp=X_temp,
         y_temp=y_temp,
-        cv=cv,
         n_estimators=n_estimators,
         max_depth=max_depth,
         min_samples_leaf=min_samples_leaf,
@@ -340,24 +283,22 @@ if __name__ == "__main__":
 
     # Expand parameters for simple strategy
     df_simple_expanded = df_simple.copy()
-    df_simple_expanded['n_estimators'] = df_simple_expanded['params'].apply(
-        lambda d: d['n_estimators']
+    df_simple_expanded["n_estimators"] = df_simple_expanded["params"].apply(
+        lambda d: d["n_estimators"]
     )
-    df_simple_expanded['max_depth'] = df_simple_expanded['params'].apply(
-        lambda d: d['max_depth']
+    df_simple_expanded["max_depth"] = df_simple_expanded["params"].apply(
+        lambda d: d["max_depth"]
     )
-    df_simple_expanded['min_samples_leaf'] = df_simple_expanded[
-        'params'
-    ].apply(lambda d: d['min_samples_leaf'])
+    df_simple_expanded["min_samples_leaf"] = df_simple_expanded["params"].apply(
+        lambda d: d["min_samples_leaf"]
+    )
 
     # Expand parameters for kfold strategy
     df_kfold_expanded = df_kfold.copy()
-    df_kfold_expanded['n_estimators'] = df_kfold_expanded[
-        'param_rf__n_estimators'
-    ]
-    df_kfold_expanded['max_depth'] = df_kfold_expanded['param_rf__max_depth']
-    df_kfold_expanded['min_samples_leaf'] = df_kfold_expanded[
-        'param_rf__min_samples_leaf'
+    df_kfold_expanded["n_estimators"] = df_kfold_expanded["param_rf__n_estimators"]
+    df_kfold_expanded["max_depth"] = df_kfold_expanded["param_rf__max_depth"]
+    df_kfold_expanded["min_samples_leaf"] = df_kfold_expanded[
+        "param_rf__min_samples_leaf"
     ]
 
     # Custom style
@@ -369,71 +310,71 @@ if __name__ == "__main__":
     # Score vs n_estimators
     sns.lineplot(
         data=df_simple_expanded,
-        x='n_estimators',
-        y='score',
+        x="n_estimators",
+        y="score",
         ax=axs[0],
-        marker='o',
-        label='Simple',
+        marker="o",
+        label="Simple",
     )
     sns.lineplot(
         data=df_kfold_expanded,
-        x='n_estimators',
-        y='score',
+        x="n_estimators",
+        y="score",
         ax=axs[0],
-        marker='X',
-        linestyle='--',
-        label='K-Fold',
+        marker="X",
+        linestyle="--",
+        label="K-Fold",
     )
-    axs[0].set_title('n_estimators')
-    axs[0].set_xlabel('')
-    axs[0].set_ylabel('Mean Score')
-    axs[0].legend(loc='upper right')
+    axs[0].set_title("n_estimators")
+    axs[0].set_xlabel("")
+    axs[0].set_ylabel("Mean Score")
+    axs[0].legend(loc="upper right")
 
     # Score vs max_depth
     sns.lineplot(
         data=df_simple_expanded,
-        x='max_depth',
-        y='score',
+        x="max_depth",
+        y="score",
         ax=axs[1],
-        marker='o',
-        label='Simple',
+        marker="o",
+        label="Simple",
     )
     sns.lineplot(
         data=df_kfold_expanded,
-        x='max_depth',
-        y='score',
+        x="max_depth",
+        y="score",
         ax=axs[1],
-        marker='X',
-        linestyle='--',
-        label='K-Fold',
+        marker="X",
+        linestyle="--",
+        label="K-Fold",
     )
-    axs[1].set_title('max_depth')
-    axs[1].set_xlabel('')
-    axs[1].set_ylabel('Mean Score')
-    axs[1].legend(loc='upper right')
+    axs[1].set_title("max_depth")
+    axs[1].set_xlabel("")
+    axs[1].set_ylabel("Mean Score")
+    axs[1].legend(loc="upper right")
 
     # Score vs min_samples_leaf
     sns.lineplot(
         data=df_simple_expanded,
-        x='min_samples_leaf',
-        y='score',
+        x="min_samples_leaf",
+        y="score",
         ax=axs[2],
-        marker='o',
-        label='Simple',
+        marker="o",
+        label="Simple",
     )
     sns.lineplot(
         data=df_kfold_expanded,
-        x='min_samples_leaf',
-        y='score',
+        x="min_samples_leaf",
+        y="score",
         ax=axs[2],
-        marker='X',
-        linestyle='--',
-        label='K-Fold',
+        marker="X",
+        linestyle="--",
+        label="K-Fold",
     )
-    axs[2].set_title('min_samples_leaf')
-    axs[2].set_xlabel('')
-    axs[2].set_ylabel('Mean Score')
-    axs[2].legend(loc='upper right')
+    axs[2].set_title("min_samples_leaf")
+    axs[2].set_xlabel("")
+    axs[2].set_ylabel("Mean Score")
+    axs[2].legend(loc="upper right")
 
     # Save figure
     plt.tight_layout()

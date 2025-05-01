@@ -25,19 +25,19 @@ def parse_best_params(
 
     # Mapping activation function names to nn classes
     act_fn_mapping = {
-        'ReLU': nn.ReLU,
-        'Sigmoid': nn.Sigmoid,
-        'Tanh': nn.Tanh,
+        "ReLU": nn.ReLU,
+        "Sigmoid": nn.Sigmoid,
+        "Tanh": nn.Tanh,
     }
 
     # Mapping optimizer names to torch.optim classes
     optimizer_mapping = {
-        'Adam': optim.Adam,
-        'SGD': optim.SGD,
+        "Adam": optim.Adam,
+        "SGD": optim.SGD,
     }
 
     # Open the summary text file and read all lines
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         lines = f.readlines()
 
         # Fix for Pyright
@@ -49,21 +49,20 @@ def parse_best_params(
 
         # Parse each line in the selected block
         for line in param_lines:
-            parts = line.strip().split(':')
+            parts = line.strip().split(":")
 
             if len(parts) == 2:
                 key, value = parts
                 key = key.strip()
                 value = value.strip()
 
-                # Activation function mapping
-                if key == 'activation_fn':
+                # Activation function and optimizer mapping
+                if key == "activation_fn":
                     value_converted = act_fn_mapping.get(value, value)
-                # Optimizer mapping
-                elif key == 'optimizer':
+                elif key == "optimizer":
                     value_converted = optimizer_mapping.get(value, value)
                 else:
-                    if value.lower() == 'none':
+                    if value.lower() == "none":
                         value_converted = None
                     else:
                         try:
@@ -81,7 +80,7 @@ def parse_best_params(
 
 
 if __name__ == "__main__":
-    # Example usage for KNN KFold model
+    # Example for KNN K-Fold model
     best_params_knn_kfold = parse_best_params(
         "../../results/models/knn/knn_summary.txt",
         line_range=(12, 15),

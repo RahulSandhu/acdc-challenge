@@ -3,9 +3,7 @@ from typing import List, Sequence
 import pandas as pd
 
 
-def generate_short_labels(
-    features: Sequence[str], max_len: int = 15
-) -> List[str]:
+def generate_short_labels(features: Sequence[str], max_len: int = 15) -> List[str]:
     """
     Generate short feature labels by removing the 'original_' prefix and
     truncating the label to a maximum length.
@@ -21,9 +19,8 @@ def generate_short_labels(
     # Initialize list for short labels
     short_labels = []
 
-    # Iterate over features
+    # Remove 'original_' prefix and shorten to 'max_len'
     for f in features:
-        # Remove 'original_' prefix and shorten to 'max_len'
         clean = f.replace("original_", "")
         label = clean if len(clean) <= max_len else clean[:max_len] + "..."
         short_labels.append(label)
@@ -37,7 +34,6 @@ if __name__ == "__main__":
 
     # Separate features and classes
     X = df.drop(columns=["class"])
-    y = df["class"]
 
     # Generate short labels
     short_labels = generate_short_labels(list(X.columns))

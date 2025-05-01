@@ -8,7 +8,7 @@
 Train Acc: 0.9500, Val Acc: 0.9500, Score: 0.9500
 
 ==================================================
-  Best Parameters (KFOLD + CTL/LDA + RF)
+  Best Parameters (K-FOLD + CTL/LDA + RF)
 ==================================================
   n_estimators     : 300
   max_depth        : 3

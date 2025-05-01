@@ -1,0 +1,15 @@
+================================================
+  Evaluation Summary: svm_baseline
+================================================
+  Accuracy (95% CI) : 0.3500 (0.1410, 0.5590)
+  Precision (macro) : 0.5667
+  Recall (macro)    : 0.3500
+  F1 Score (macro)  : 0.3523
+  ROC AUC (macro)   : 0.5031
+================================================
+
+Class DCM: Best FPR=0.38, TPR=1.00, Threshold=0.19, AUC=0.81
+Class HCM: Best FPR=0.94, TPR=1.00, Threshold=0.13, AUC=0.36
+Class MINF: Best FPR=0.00, TPR=0.00, Threshold=inf, AUC=0.25
+Class NOR: Best FPR=0.56, TPR=1.00, Threshold=0.22, AUC=0.58
+Class RV: Best FPR=0.50, TPR=1.00, Threshold=0.16, AUC=0.52

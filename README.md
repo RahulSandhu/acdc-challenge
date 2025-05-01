@@ -9,15 +9,15 @@ cardiac MRI images.
 ## 📂 Project Structure
 
 ```
-├── code/               # Source code (EDA, models, metrics, demos, utilities)
-├── data/               # Normalized and raw datasets, testing sets
-├── images/             # Figures for EDA, model metrics, demos, and workflow schemas
+├── code/               # Source code (EDA, models, metrics, utilities)
+├── data/               # Normalized and raw datasets, train/val/test sets
+├── images/             # Figures for EDA, model metrics, and workflow schemas
 ├── misc/               # Additional files (guides, custom Matplotlib style, references)
 ├── report/             # LaTeX files for project report
 ├── results/            # Saved models, metrics, and evaluation results
 ├── LICENSE             # License file
 ├── pyproject.toml      # Project configuration
-├── README.md           # Project overview (this file)
+├── README.md           # Project overview 
 ├── requirements.txt    # Python dependencies
 ```
 
@@ -50,7 +50,6 @@ cardiac MRI images.
 - `code/metrics/`: Custom metrics and evaluation functions
 - `code/utils/`: Utility functions (e.g., Lasso feature selection, parsing best
 parameters)
-- `code/demos/`: Scripts for visualizing model performance
 
 ## 📁 Data
 

@@ -8,7 +8,7 @@
 Train Acc: 0.9500, Val Acc: 0.9500, Score: 0.9500
 
 ==================================================
-  Best Parameters (KFOLD + CTL/LDA + KNN)
+  Best Parameters (K-FOLD + CTL/LDA + KNN)
 ==================================================
   n_neighbors : 9
   weights     : uniform

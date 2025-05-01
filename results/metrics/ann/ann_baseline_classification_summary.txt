@@ -1,0 +1,15 @@
+================================================
+  Evaluation Summary: ann_baseline
+================================================
+  Accuracy (95% CI) : 0.2000 (0.0247, 0.3753)
+  Precision (macro) : 0.0400
+  Recall (macro)    : 0.2000
+  F1 Score (macro)  : 0.0667
+  ROC AUC (macro)   : 0.5000
+================================================
+
+Class DCM: Best FPR=0.00, TPR=0.00, Threshold=inf, AUC=0.50
+Class HCM: Best FPR=0.00, TPR=0.00, Threshold=inf, AUC=0.50
+Class MINF: Best FPR=0.00, TPR=0.00, Threshold=inf, AUC=0.50
+Class NOR: Best FPR=0.00, TPR=0.00, Threshold=inf, AUC=0.50
+Class RV: Best FPR=0.00, TPR=0.00, Threshold=inf, AUC=0.50

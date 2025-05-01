@@ -66,7 +66,7 @@ parameters)
 - `results/metrics/`: Classification reports (CSV and TXT) for each model under
 simple and k-fold settings
 
-## 🌐 Figures
+## 📈 Figures
 
 All generated figures for EDA, feature selection, model training, and
 evaluations are stored under the `images/` directory:

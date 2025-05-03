@@ -85,5 +85,5 @@ if __name__ == "__main__":
         "../../results/models/knn/knn_summary.txt",
         line_range=(12, 15),
     )
-    print("\nKNN KFold Best Params:")
+    print("KNN KFold Best Params:")
     print(best_params_knn_kfold)

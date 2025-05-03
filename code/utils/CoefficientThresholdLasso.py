@@ -222,6 +222,9 @@ if __name__ == "__main__":
     img_dir = Path("../../images/lasso/")
     img_dir.mkdir(parents=True, exist_ok=True)
 
+    # Custom style
+    plt.style.use("../../misc/custom_style.mplstyle")
+
     # Fit feature selector
     ctl = CoefficientThresholdLasso()
     ctl.fit(X_train, y_train)
@@ -271,7 +274,6 @@ if __name__ == "__main__":
     plt.title("Loss (MSE) vs Lambda")
     plt.xlabel("Lambda")
     plt.ylabel("Mean Squared Error")
-    plt.grid(True, linestyle="--", alpha=0.7)
     plt.legend()
     plt.tight_layout()
     plt.savefig(img_dir / "mse_vs_lambda.png")
@@ -293,7 +295,6 @@ if __name__ == "__main__":
     plt.title("Loss (MSE) vs Coefficient Threshold")
     plt.xlabel("Coefficient Threshold")
     plt.ylabel("Mean Squared Error")
-    plt.grid(True, linestyle="--", alpha=0.7)
     plt.legend()
     plt.tight_layout()
     plt.savefig(img_dir / "mse_vs_threshold.png")

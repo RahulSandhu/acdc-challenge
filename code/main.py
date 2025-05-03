@@ -17,6 +17,15 @@ from torch import nn
 from utils.CoefficientThresholdLasso import CoefficientThresholdLasso
 from utils.parse_best_params import parse_best_params
 
+# Set random seeds
+random.seed(42)
+np.random.seed(42)
+torch.manual_seed(42)
+torch.cuda.manual_seed(42)
+torch.cuda.manual_seed_all(42)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
 # Load dataset
 raw_df = pd.read_csv("../data/datasets/raw_acdc_radiomics.csv")
 norm_df = pd.read_csv("../data/datasets/norm_acdc_radiomics.csv")
@@ -63,15 +72,6 @@ best_params_ann_simple = parse_best_params(
 best_params_ann_kfold = parse_best_params(
     "../results/models/ann/ann_summary.txt", line_range=(12, 20)
 )
-
-# Set random seeds
-random.seed(42)
-np.random.seed(42)
-torch.manual_seed(42)
-torch.cuda.manual_seed(42)
-torch.cuda.manual_seed_all(42)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
 
 # Model configurations
 model_configs = {

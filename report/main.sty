@@ -1,0 +1,143 @@
+\ProvidesPackage{main}
+
+%%%%%%%%%%%%%%%%%%%%%
+% Font and language %
+%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage[utf8]{inputenc}
+\RequirePackage[T1]{fontenc}
+\RequirePackage[english]{babel}
+\RequirePackage{helvet}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+%%%%%%%%%%%%%%
+% Title page %
+%%%%%%%%%%%%%%
+
+\RequirePackage{graphicx}
+
+\makeatletter
+\renewcommand{\maketitle}{
+	\begin{titlepage}
+		\begin{center}
+			\includegraphics[width=2.66in]{../images/logos/logo_uab.png} \\[1.2cm]%
+			{\fontsize{18}{20}\bfseries\selectfont Cardiovascular disease diagnosis
+			using cardiac magnetic resonance radiomics and machine learning}
+			\\[1.2cm]%
+			\includegraphics[width=0.99\textwidth]{../images/logos/logo_acdc.png} \\[1.2cm]%
+		\end{center}
+
+		\vspace{0.25cm}
+
+		\begin{flushleft}
+			{\fontsize{12}{14}\selectfont Submitted by:} \\[0.1cm]%
+			{\fontsize{12}{14}\selectfont Joan Arxer I Vargas} \\[0.1cm]%
+			{\fontsize{12}{14}\selectfont Sofía González Estrada} \\[0.1cm]%
+			{\fontsize{12}{14}\selectfont Roger Puig I Arxer} \\[0.1cm]%
+			{\fontsize{12}{14}\selectfont Ravneet-Rahul Sandhu Singh} \\[0.1cm]%
+			{\fontsize{12}{14}\selectfont Frances Scarlett Thomas}%
+		\end{flushleft}
+
+		\vspace{0.5cm}
+
+		\begin{center}
+			{\fontsize{14}{16}\selectfont Machine Learning} \\[0.2cm]%
+			{\fontsize{14}{16}\selectfont Group 5} \\[0.7cm]%
+			{\fontsize{14}{16}\selectfont May 4, 2025}%
+		\end{center}
+	\end{titlepage}
+}
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Geometry, header and footers %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage[a4paper,top=2.54cm,bottom=2.54cm,left=3.17cm,right=3.17cm]{geometry}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Table of contents, sections and spacing %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage{setspace}
+\RequirePackage{titlesec}
+\RequirePackage{enumitem}
+
+\setstretch{1.1}
+\setlength{\parskip}{3pt}
+\setlength{\parindent}{0pt}
+
+\titleformat{\section}{\fontsize{16}{18}\bfseries}{\thesection.}{0.3em}{}
+\titlespacing*{\section}{0pt}{6pt}{6pt}
+
+\titleformat{\subsection}{\fontsize{14}{16}\bfseries}{\thesubsection}{0.3em}{}
+\titlespacing*{\subsection}{0pt}{4pt}{4pt}
+
+\titleformat{\subsubsection}{\fontsize{12}{14}\bfseries}{}{0pt}{}[]
+\titlespacing*{\subsubsection}{0pt}{4pt}{4pt}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Figures, tables, and equations %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage{amsmath,amsthm,mathtools,amssymb}
+\RequirePackage{color,xcolor}
+\RequirePackage{caption,float,subfig,rotating,mwe}
+\RequirePackage{longtable,tabularx,tabularray,booktabs,multirow,multicol,nicematrix,makecell}
+
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\floatsep}{10pt plus 2pt minus 2pt}
+\setlength{\intextsep}{10pt plus 2pt minus 2pt}
+
+\captionsetup[figure]{%
+	textfont=small,
+	labelfont={bf,small},
+	skip=4pt
+}
+
+\captionsetup[table]{%
+	textfont=small,
+	labelfont={bf,small},
+	skip=4pt
+}
+
+\AtBeginEnvironment{align}{%
+	\setlength{\abovedisplayskip}{-4pt}
+	\setlength{\belowdisplayskip}{8pt}
+}
+
+\setlist[itemize]{%
+	topsep=0pt,
+	partopsep=0pt,
+	itemsep=1pt,
+	parsep=0pt,
+	leftmargin=2em
+}
+
+%%%%%%%%%%
+% Others %
+%%%%%%%%%%
+
+\RequirePackage{lipsum}
+\RequirePackage[export]{adjustbox}
+\RequirePackage{afterpage}
+\RequirePackage{pgffor}
+\RequirePackage{xstring}
+\RequirePackage{minted}
+\RequirePackage{csquotes}
+\RequirePackage{xurl}
+\RequirePackage{tikz}
+\RequirePackage{pifont}
+\RequirePackage{microtype}
+\RequirePackage{placeins}
+\RequirePackage{chngcntr}
+\RequirePackage{apptools}
+\RequirePackage{etoolbox}
+\RequirePackage[colorlinks=true,linkcolor=black,urlcolor=blue,citecolor=black]{hyperref}
+
+\pretocmd{\thebibliography}{%
+	\addcontentsline{toc}{section}{References}
+}{}{}
+
+\pagenumbering{gobble}

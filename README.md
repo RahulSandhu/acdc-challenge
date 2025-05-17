@@ -1,4 +1,6 @@
-# ACDC Radiomics Classification Challenge
+<div align="justify">
+
+# ACDC Radiomics Challenge
 
 This repository contains all the code, data, and results for a radiomics-based
 classification challenge using the ACDC dataset. We developed and evaluated
@@ -26,8 +28,8 @@ cardiac MRI images.
 1. **Clone the repository**
 
    ```bash
-   git clone <repository-url>
-   cd <repository-name>
+   git clone https://github.com/RahulSandhu/acdc-challenge
+   cd acdc-challenge
    ```
 
 2. **Create and activate a virtual environment**
@@ -43,7 +45,7 @@ cardiac MRI images.
    pip install -r requirements.txt
    ```
 
-## 🕹️ Code
+## 🖥️ Code
 
 - `code/eda/`: Exploratory Data Analysis scripts
 - `code/models/`: Machine learning model definitions (ANN, KNN, RF, SVM)
@@ -57,8 +59,11 @@ parameters)
   - `norm_acdc_radiomics.csv`: Normalized dataset used for model training and
   validation
   - `raw_acdc_radiomics.csv`: Raw extracted radiomics features
-- `data/testing/`
-  - `X_test.csv`, `y_test.csv`: Test datasets for final model evaluation
+- `data/simple/`
+  - `X_train_norm.csv`, `X_train_raw.csv`, ..., `y_val_norm.csv`,
+  `y_val_raw.csv`
+- `data/kfold/`
+  - `X_temp_norm.csv`, `X_test_norm.csv`, `y_temp_norm.csv`, `y_test_norm.csv`
 
 ## 📊 Results
 
@@ -86,8 +91,10 @@ generate the report are also provided under the `report/` folder.
 
 This project is licensed under the terms of the [LICENSE](LICENSE) file.
 
-## 🖊️ Acknowledgements
+## 💊 Acknowledgements
 
 - ACDC Challenge Dataset
 - Project developed as part of the Health Data Science Master's program at
 Universitat Rovira i Virgili (URV)
+
+</div>

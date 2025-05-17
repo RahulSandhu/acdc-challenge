@@ -493,7 +493,7 @@ if __name__ == "__main__":
     df_kfold_expanded["max_epochs"] = df_kfold_expanded["param_ann__max_epochs"]
 
     # Custom style
-    plt.style.use("../../misc/custom_style.mplstyle")
+    plt.style.use("../../config/custom_style.mplstyle")
 
     # Hyperparameters evolution plot
     fig, axs = plt.subplots(3, 2, figsize=(14, 10))

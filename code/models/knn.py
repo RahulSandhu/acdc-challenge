@@ -298,7 +298,7 @@ if __name__ == "__main__":
     df_kfold_expanded["metric"] = df_kfold_expanded["param_knn__metric"]
 
     # Custom style
-    plt.style.use("../../misc/custom_style.mplstyle")
+    plt.style.use("../../config/custom_style.mplstyle")
 
     # Hyperparameters evolution plot
     fig, axs = plt.subplots(3, 1)

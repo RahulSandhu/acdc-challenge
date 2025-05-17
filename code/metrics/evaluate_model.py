@@ -92,7 +92,7 @@ if __name__ == "__main__":
     y_test_raw = pd.read_csv("../../data/simple/y_test_raw.csv").squeeze()
 
     # Custom style
-    plt.style.use("../../misc/custom_style.mplstyle")
+    plt.style.use("../../config/custom_style.mplstyle")
 
     # Locate base directory where models are saved
     base_dir = Path("../../results/models/")

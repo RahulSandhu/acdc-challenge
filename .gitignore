@@ -1,0 +1,14 @@
+# Ignore files and folders
+./.gitignore
+./.venv/
+
+# Ignore everything inside report/
+report/*
+
+# Allow only .tex, .sty, and .pdf files 
+!report/*.tex
+!report/*.sty
+!report/*.pdf
+
+# Allow only .tex files in subdirectories 
+!report/**/*.tex

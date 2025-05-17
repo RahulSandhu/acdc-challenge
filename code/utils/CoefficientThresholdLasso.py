@@ -223,7 +223,7 @@ if __name__ == "__main__":
     img_dir.mkdir(parents=True, exist_ok=True)
 
     # Custom style
-    plt.style.use("../../misc/custom_style.mplstyle")
+    plt.style.use("../../config/custom_style.mplstyle")
 
     # Fit feature selector
     ctl = CoefficientThresholdLasso()

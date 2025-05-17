@@ -6,7 +6,7 @@ several machine learning models (ANN, KNN, RF, SVM) for multi-class
 classification of cardiac pathologies using radiomic features extracted from
 cardiac MRI images.
 
-## 📂 Project Structure
+## 📂 Project
 
 ```
 ├── code/               # Source code (EDA, models, metrics, utilities)
@@ -43,7 +43,7 @@ cardiac MRI images.
    pip install -r requirements.txt
    ```
 
-## 🕹️ Code Modules
+## 🕹️ Code
 
 - `code/eda/`: Exploratory Data Analysis scripts
 - `code/models/`: Machine learning model definitions (ANN, KNN, RF, SVM)

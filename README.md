@@ -12,9 +12,10 @@ cardiac MRI images.
 
 ```
 ├── code/               # Source code (EDA, models, metrics, utilities)
+├── config/             # Configuration files (e.g., custom Matplotlib styles)
 ├── data/               # Normalized and raw datasets, train/val/test sets
 ├── images/             # Figures for EDA, model metrics, and workflow schemas
-├── misc/               # Additional files (guides, custom Matplotlib style, references)
+├── misc/               # Additional files (guides, references, etc.)
 ├── report/             # LaTeX files for project report
 ├── results/            # Saved models, metrics, and evaluation results
 ├── LICENSE             # License file
@@ -91,7 +92,7 @@ generate the report are also provided under the `report/` folder.
 
 This project is licensed under the terms of the [LICENSE](LICENSE) file.
 
-## 💊 Acknowledgements
+## 🎓 Acknowledgements
 
 - ACDC Challenge Dataset
 - Project developed as part of the Health Data Science Master's program at

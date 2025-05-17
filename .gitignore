@@ -2,13 +2,14 @@
 ./.gitignore
 ./.venv/
 
-# Ignore everything inside report/
-report/*
+# Ignore everything under report/
+report/**
 
-# Allow only .tex, .sty, and .pdf files 
-!report/*.tex
-!report/*.sty
-!report/*.pdf
+# Re-allow folders and subfolders
+!report/
+!report/**/
 
-# Allow only .tex files in subdirectories 
+# Re-allow desired file types
 !report/**/*.tex
+!report/**/*.sty
+!report/**/*.pdf

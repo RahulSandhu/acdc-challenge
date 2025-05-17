@@ -1,0 +1,78 @@
+\sloppy
+
+\section{Discussion and Conclusions}
+
+In this first challenge, we worked with the Automated Cardiac Diagnosis
+Challenge (ACDC) dataset with the objective of classifying patients into five
+cardiac conditions: Dilated Cardiomyopathy (DCM), Hypertrophic Cardiomyopathy
+(HCM), Myocardial Infarction (MINF), Normal (NOR), and Right Ventricular
+abnormality (RV). Our team developed and compared different pipelines using
+State of the Art (SoA) methodological approaches to evaluate their performance
+and identify the best-performing model.
+
+The ACDC dataset, being well-curated and balanced across classes, simplified
+preprocessing. Our initial exploratory analysis confirmed the absence of major
+issues such as class imbalance or extreme outliers. Normalization was verified
+and applied appropriately. We also noted a considerable degree of
+multicollinearity, which is expected given that many features extracted via the
+PyRadiomics library describe closely related structural and texture-based
+characteristics.
+
+To address these challenges, we implemented two primary classification
+pipelines in addition to a baseline model. Due to the high dimensionality and
+correlated nature of the features, we applied an enhanced version of the Least
+Absolute Shrinkage and Selection Operator (LASSO) method that not only performs
+feature selection but also eliminates variables that contribute weakly to model
+performance. Following this step, the selected features were projected into a
+lower-dimensional space using Linear Discriminant Analysis (LDA). While this
+transformation improves class separability, it introduces a limitation in
+interpretability, as the original radiomic features are replaced by linear
+combinations. Given that the main goal of this project was classification
+rather than clinical interpretability, this trade-off was considered
+acceptable. However, in future work—particularly in clinical contexts—methods
+focusing solely on feature selection may be more appropriate to preserve
+interpretability.
+
+We evaluated four classifiers—K-Nearest Neighbors (KNN), Random Forest (RF),
+Support Vector Machine (SVM), and Artificial Neural Network (ANN)—optimized
+using GridSearchCV. Hyperparameter grids were manually defined but restricted
+to reasonable ranges (e.g., excluding very low values for \(k\) in KNN to
+mitigate overfitting). The tuning process was computationally demanding,
+especially for ANN, which required more time to converge due to the model’s
+depth and the need to learn complex feature interactions. This helps explain
+the ANN’s low accuracy under the baseline setting, where the model had a
+shallow architecture and very limited training data.
+
+Regarding the performance of the selected data splitting strategies and the
+feature reduction pipeline based on LASSOmodf combined with LDA, the
+progression from baseline to simple split and then to stratified K-Fold clearly
+highlights the importance of choosing the proper methods and parameters before
+entering into modelling. The baseline approach, which lacked structured
+validation, resulted in reduced reliability and increased variability. The
+simple split improved stability by introducing a fixed validation set, while
+stratified K-Fold further enhanced generalization by maintaining class balance
+across folds. The main advantage of using stratified K-Fold over baseline and
+simple split is its ability to generate multiple training and validation
+partitions, allowing for more reliable performance estimates and better use of
+limited data.
+
+Regarding model comparisons, KNN was not expected to perform best due to its
+sensitivity to noise and overfitting, but it still produced reasonably stable
+results, achieving up to 0.80 accuracy under K-Fold validation. RF outperformed
+the other models in the baseline and simple split settings with accuracies of
+0.75 and 0.80, respectively, and ranked second in the K-Fold setting. ANN,
+while more computationally intensive to train, showed improved results with
+more data and deeper structure, reaching 0.70 accuracy under K-Fold.
+Ultimately, SVM emerged as the top-performing model, achieving the highest
+accuracy of 0.85 under stratified K-Fold and consistently high performance
+across all metrics. This may be attributed to SVM's capacity to handle
+high-dimensional, correlated input spaces effectively, particularly when paired
+with LDA, which generates linearly separable components. The clear separation
+in the transformed feature space likely enabled the SVM to construct optimal
+decision boundaries, making it particularly suitable for this classification
+task.
+
+In summary, our approach combining advanced feature selection, dimensionality
+reduction, and model evaluation proved effective. While interpretability was
+partially compromised by the use of LDA, the classification results were robust
+and align with expected trends, supporting the pipeline’s validity.

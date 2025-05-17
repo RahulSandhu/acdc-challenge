@@ -1,0 +1,53 @@
+\section{Introduction}
+
+Advances in medical imaging and analytical techniques have long supported the
+diagnosis and management of Cardiovascular Diseases (CVDs). The increasing
+availability of high-resolution imaging and computational tools presents an
+opportunity to enhance clinical decision-making through data-driven approaches.
+
+\subsection{Motivation}
+
+CVDs remain a major global health burden, causing nearly one-third of annual
+deaths worldwide \cite{who2021cvd}. Early and reliable diagnosis is key to
+managing progression and improving outcomes. Cardiac Magnetic Resonance (CMR)
+is the gold standard for assessing heart morphology and function due to its
+high resolution and non-invasive nature \cite{raisi2020cmr}. However,
+traditional diagnostics often rely on limited parameters, potentially
+overlooking patterns critical for certain conditions
+\cite{lambin2017radiomics}.
+
+\subsection{State of the Art}
+
+Radiomics has recently emerged as a promising method to extract data from
+medical images, providing a more detailed representation of tissue
+characteristics. By quantifying traits like shape, texture, and intensity, it
+enables the creation of datasets for automated disease classification. Combined
+with Machine Learning (ML) models, these features offer new opportunities for
+predictive tools beyond traditional image interpretation
+\cite{gillies2016radiomics}.
+
+\subsection{Objectives}
+
+For this challenge, we have been provided with the Automated Cardiac Diagnosis
+Challenge (ACDC) dataset \cite{bernard2018deep}, derived from cine-MRI scans
+acquired at the University Hospital of Dijon (France). It offers standardized
+imaging data capturing real-time heart movement across the cardiac cycle.
+Radiomic features were extracted from these segmented heart structures using
+the PyRadiomics library \cite{pyradiomics2024}. Each patient is assigned to one
+of five diagnostic categories, making this a multi-class classification
+problem. Therefore, the objective is to compare different supervised machine
+learning algorithms and identify the best-performing model.
+
+\subsection{Goals}
+
+To address this objective, we define a set of specific goals that guide the
+project workflow:
+
+\begin{itemize}[label=\ding{51}]
+	\item Perform an exploratory analysis to understand the data.
+	\item Compare Simple Split and Stratified K-Fold techniques.
+	\item Apply feature selection and dimensionality reduction.
+	\item Implement ML models for supervised classification.
+	\item Evaluate and compare model performance using robust metrics.
+	\item Assess the clinical relevance of the best-performing model.
+\end{itemize}

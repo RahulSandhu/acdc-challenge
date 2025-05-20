@@ -7,11 +7,6 @@ name = "acdc"
 version = "0.1.0"
 description = "Machine learning applied to radiomic features extracted from cardiac MRI scans"
 authors = [{ name = "Ravneet-Rahul Sandhu Singh", email = "rahulsandhu542001@gmail.com" }]
-dependencies = [
-    "pandas",
-    "numpy",
-    "scikit-learn"
-]
 
 [tool.setuptools]
 package-dir = {"" = "code"}

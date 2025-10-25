@@ -1,0 +1,23 @@
+==================================================
+  Best Parameters (SIMPLE + CTL/LDA + ANN)
+==================================================
+  hidden_layers : 2
+  hidden_size   : 100
+  learning_rate : 0.001
+  activation_fn : Sigmoid
+  optimizer     : Adam
+  max_epochs    : 50
+--------------------------------------------------
+Train Acc: 0.8833, Val Acc: 0.9000, Score: 0.8917
+
+==================================================
+  Best Parameters (KFOLD + CTL/LDA + ANN)
+==================================================
+  hidden_layers : 3
+  hidden_size   : 128
+  learning_rate : 0.01
+  activation_fn : Tanh
+  optimizer     : SGD
+  max_epochs    : 100
+--------------------------------------------------
+Train Acc: 0.8167, Val Acc: 0.7375, Score: 0.6979

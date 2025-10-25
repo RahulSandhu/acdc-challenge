@@ -9,5 +9,5 @@ description = "Machine learning applied to radiomic features extracted from card
 authors = [{ name = "Ravneet-Rahul Sandhu Singh", email = "rahulsandhu542001@gmail.com" }]
 
 [tool.setuptools]
-package-dir = {"" = "code"}
+package-dir = {"" = "src"}
 packages = ["models", "metrics", "utils"]

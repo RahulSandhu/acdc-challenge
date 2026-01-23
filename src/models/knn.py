@@ -272,12 +272,12 @@ if __name__ == "__main__":
     )
 
     # Ensure output directory exists
-    Path("../../results/models/knn").mkdir(parents=True, exist_ok=True)
-    img_dir = Path("../../images/models/")
+    Path("../../models/knn").mkdir(parents=True, exist_ok=True)
+    img_dir = Path("../../results/figures/models/")
     img_dir.mkdir(parents=True, exist_ok=True)
 
     # Save summary
-    Path("../../results/models/knn/knn_summary.txt").write_text(summary)
+    Path("../../models/knn/knn_summary.txt").write_text(summary)
 
     # Expand parameters for simple strategy
     df_simple_expanded = df_simple.copy()
@@ -298,7 +298,7 @@ if __name__ == "__main__":
     df_kfold_expanded["metric"] = df_kfold_expanded["param_knn__metric"]
 
     # Custom style
-    plt.style.use("../../config/custom_style.mplstyle")
+    plt.style.use("../../config/matplotlib/stylelib/mhedas.mplstyle")
 
     # Hyperparameters evolution plot
     fig, axs = plt.subplots(3, 1)

@@ -278,12 +278,12 @@ if __name__ == "__main__":
     )
 
     # Ensure output directory exists
-    Path("../../results/models/svm").mkdir(parents=True, exist_ok=True)
-    img_dir = Path("../../images/models/")
+    Path("../../models/svm").mkdir(parents=True, exist_ok=True)
+    img_dir = Path("../../figures/results/models/")
     img_dir.mkdir(parents=True, exist_ok=True)
 
     # Save summary
-    Path("../../results/models/svm/svm_summary.txt").write_text(summary)
+    Path("../../models/svm/svm_summary.txt").write_text(summary)
 
     # Expand parameters for simple strategy
     df_simple_expanded = df_simple.copy()

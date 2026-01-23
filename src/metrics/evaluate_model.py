@@ -92,10 +92,10 @@ if __name__ == "__main__":
     y_test_raw = pd.read_csv("../../data/simple/y_test_raw.csv").squeeze()
 
     # Custom style
-    plt.style.use("../../config/custom_style.mplstyle")
+    plt.style.use("../../config/matplotlib/stylelib/mhedas.mplstyle")
 
     # Locate base directory where models are saved
-    base_dir = Path("../../results/models/")
+    base_dir = Path("../../models/")
 
     # Load the label encoder used during training
     le = joblib.load(base_dir / "label_encoder.pkl")
@@ -110,8 +110,8 @@ if __name__ == "__main__":
     for model_type in model_types:
         # Define result, metrics, and image output directories
         results_dir = base_dir / model_type
-        metrics_dir = Path("../../results/metrics/") / model_type
-        images_dir = Path(f"../../images/metrics/{model_type}/")
+        metrics_dir = Path("../../results/tables/metrics/") / model_type
+        images_dir = Path(f"../../results/figures/metrics/{model_type}/")
         results_dir.mkdir(parents=True, exist_ok=True)
         metrics_dir.mkdir(parents=True, exist_ok=True)
         images_dir.mkdir(parents=True, exist_ok=True)

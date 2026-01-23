@@ -13,10 +13,10 @@ raw_df = pd.read_csv("../../data/datasets/raw_acdc_radiomics.csv")
 norm_df = pd.read_csv("../../data/datasets/norm_acdc_radiomics.csv")
 
 # Custom style
-plt.style.use("../../config/custom_style.mplstyle")
+plt.style.use("../../config/matplotlib/stylelib/mhedas.mplstyle")
 
 # Ensure output directory exists
-img_dir = Path("../../images/splits")
+img_dir = Path("../../figures/splits")
 img_dir.mkdir(parents=True, exist_ok=True)
 
 # Distinct colors for classes
@@ -34,8 +34,8 @@ raw_df["class"] = le.fit_transform(raw_df["class"])
 norm_df["class"] = le.fit_transform(norm_df["class"])
 
 # Save the label encoder
-Path("../../results/models/").mkdir(parents=True, exist_ok=True)
-joblib.dump(le, "../../results/models/label_encoder.pkl")
+Path("../../models/").mkdir(parents=True, exist_ok=True)
+joblib.dump(le, "../../models/label_encoder.pkl")
 
 # Separate features and classes
 X_raw = raw_df.drop(columns=["class"])

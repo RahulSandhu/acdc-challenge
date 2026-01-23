@@ -25,41 +25,51 @@ cardiac MRI images.
    ```
 
 3. **Install dependencies**
-
    ```bash
    pip install -r requirements.txt
    ```
 
-## 🖥️ Source
+## 📁 Dataset
 
-- `src/eda/`: Exploratory Data Analysis scripts
-- `src/models/`: Machine learning model definitions (ANN, KNN, RF, SVM)
-- `src/metrics/`: Custom metrics and evaluation functions
-- `src/utils/`: Utility functions (e.g., Lasso feature selection, parsing best
-parameters)
+The project uses the ACDC (Automated Cardiac Diagnosis Challenge) dataset,
+which contains cardiac MRI images with extracted radiomic features for
+multi-class classification of cardiac pathologies. Key features include:
 
-## 📁 Data
+- **Shape features**: Geometric characteristics of cardiac structures (volume,
+  surface area, compactness)
+- **First-order statistics**: Intensity histogram-based features (mean,
+  variance, skewness, kurtosis)
+- **Texture features**: Gray-level co-occurrence matrix (GLCM), gray-level
+  run-length matrix (GLRLM), gray-level size zone matrix (GLSZM)
+- **Wavelet features**: Multi-scale decomposition features capturing different
+  frequency components
+- **Clinical labels**: Multi-class cardiac pathology classifications including
+  normal, dilated cardiomyopathy, hypertrophic cardiomyopathy, and abnormal
+  right ventricle
 
-- `data/datasets/`
-  - `norm_acdc_radiomics.csv`: Normalized dataset used for model training and
-  validation
-  - `raw_acdc_radiomics.csv`: Raw extracted radiomics features
-- `data/simple/`
-  - `X_train_norm.csv`, `X_train_raw.csv`, ..., `y_val_norm.csv`,
-  `y_val_raw.csv`
-- `data/kfold/`
-  - `X_temp_norm.csv`, `X_test_norm.csv`, `y_temp_norm.csv`, `y_test_norm.csv`
+The analysis employs multiple machine learning approaches including **Artificial
+Neural Networks (ANN)**, **K-Nearest Neighbors (KNN)**, **Random Forest (RF)**,
+and **Support Vector Machines (SVM)** with Lasso-based feature selection to
+classify cardiac conditions from radiomic features.
 
 ## 📊 Results
 
-- `results/models/`: Trained models saved as `.pkl` files
-- `results/metrics/`: Classification reports (CSV and TXT) for each model under
-simple and k-fold settings
+- Multiple models evaluated under simple train-validation and k-fold
+  cross-validation settings
+- Comprehensive performance metrics including accuracy, precision, recall, and
+  F1-score for each model
+- Feature selection via Lasso regression improved model interpretability and
+  generalization
+- Best-performing models saved and documented with detailed classification
+  reports
+- Normalized features demonstrated superior performance compared to raw radiomic
+  features
 
-## 🎓 Acknowledgments
+## 🎓 Acknowledgements
 
-- ACDC Challenge Dataset
-- Project developed as part of the Health Data Science Master's program at
-Universitat Rovira i Virgili (URV)
+- [Kaggle ACDC Dataset](https://www.kaggle.com/datasets/anhoangvo/acdc-dataset)
+  – Automated Cardiac Diagnosis Challenge dataset
+- Developed as part of the Machine Learning course of the Master in Health Data
+  Science at Universitat Rovira i Virgili (URV)
 
 </div>

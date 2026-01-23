@@ -1,4 +1,3 @@
--e git+https://github.com/RahulSandhu/acdc-challenge.git@6b35e57cc19dfa0ec826e38c033a14d4f60864d6#egg=acdc
 anyio==4.9.0
 argon2-cffi==23.1.0
 argon2-cffi-bindings==21.2.0

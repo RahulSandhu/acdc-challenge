@@ -219,11 +219,11 @@ if __name__ == "__main__":
     y = df["class"]
 
     # Ensure output directory exists
-    img_dir = Path("../../images/lasso/")
+    img_dir = Path("../../results/figures/lasso/")
     img_dir.mkdir(parents=True, exist_ok=True)
 
     # Custom style
-    plt.style.use("../../config/custom_style.mplstyle")
+    plt.style.use("../../config/matplotlib/stylelib/mhedas.mplstyle")
 
     # Fit feature selector
     ctl = CoefficientThresholdLasso()

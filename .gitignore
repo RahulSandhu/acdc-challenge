@@ -1,13 +1,7 @@
 # Ignore files and folders
-./.gitignore
-./.venv/
-
-# Ignore everything under report/
+.venv/
+config/
 report/**
 
-# Re-allow folders and subfolders
-!report/
-!report/**/
-
-# Re-allow desired file types
-!report/**/*.pdf
+# Re-allow only main.pdf
+!report/main.pdf

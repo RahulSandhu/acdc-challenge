@@ -10,10 +10,10 @@ from utils.generate_short_labels import generate_short_labels
 df = pd.read_csv("../../data/datasets/raw_acdc_radiomics.csv")
 
 # Custom style
-plt.style.use("../../config/custom_style.mplstyle")
+plt.style.use("../../config/matplotlib/stylelib/mhedas.mplstyle")
 
 # Ensure output directory exists
-img_dir = Path("../../images/eda")
+img_dir = Path("../../results/figures/eda")
 img_dir.mkdir(parents=True, exist_ok=True)
 
 # Initialize outlier_data container

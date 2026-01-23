@@ -6,7 +6,6 @@ import joblib
 import numpy as np
 import pandas as pd
 import torch
-from models.ann import SimpleANN
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
@@ -14,6 +13,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 from skorch import NeuralNetClassifier
 from torch import nn
+
+from models.ann import SimpleANN
 from utils.CoefficientThresholdLasso import CoefficientThresholdLasso
 from utils.parse_best_params import parse_best_params
 
@@ -49,28 +50,28 @@ y_norm = norm_df["class"]
 
 # Parse best hyperparameters
 best_params_knn_simple = parse_best_params(
-    "../results/models/knn/knn_summary.txt", line_range=(3, 6)
+    "../models/knn/knn_summary.txt", line_range=(3, 6)
 )
 best_params_knn_kfold = parse_best_params(
-    "../results/models/knn/knn_summary.txt", line_range=(12, 15)
+    "../models/knn/knn_summary.txt", line_range=(12, 15)
 )
 best_params_rf_simple = parse_best_params(
-    "../results/models/rf/rf_summary.txt", line_range=(3, 6)
+    "../models/rf/rf_summary.txt", line_range=(3, 6)
 )
 best_params_rf_kfold = parse_best_params(
-    "../results/models/rf/rf_summary.txt", line_range=(12, 15)
+    "../models/rf/rf_summary.txt", line_range=(12, 15)
 )
 best_params_svm_simple = parse_best_params(
-    "../results/models/svm/svm_summary.txt", line_range=(3, 6)
+    "../models/svm/svm_summary.txt", line_range=(3, 6)
 )
 best_params_svm_kfold = parse_best_params(
-    "../results/models/svm/svm_summary.txt", line_range=(12, 15)
+    "../models/svm/svm_summary.txt", line_range=(12, 15)
 )
 best_params_ann_simple = parse_best_params(
-    "../results/models/ann/ann_summary.txt", line_range=(3, 9)
+    "../models/ann/ann_summary.txt", line_range=(3, 9)
 )
 best_params_ann_kfold = parse_best_params(
-    "../results/models/ann/ann_summary.txt", line_range=(12, 20)
+    "../models/ann/ann_summary.txt", line_range=(12, 20)
 )
 
 # Model configurations
@@ -198,6 +199,6 @@ for name, (model, X_fit, y_fit) in model_configs.items():
     )
 
     # Save model
-    save_path = Path(f"../results/models/{name.split('_')[0]}")
+    save_path = Path(f"../models/{name.split('_')[0]}")
     save_path.mkdir(parents=True, exist_ok=True)
     joblib.dump(pipeline, save_path / f"{name}.pkl")

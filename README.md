@@ -69,7 +69,7 @@ classify cardiac conditions from radiomic features.
 
 - [Kaggle ACDC Dataset](https://www.kaggle.com/datasets/anhoangvo/acdc-dataset)
   – Automated Cardiac Diagnosis Challenge dataset
-- Developed as part of the Machine Learning course of the Master in Health Data
-  Science at Universitat Rovira i Virgili (URV)
+- Developed as part of the Machine Learning course in the Master in Health Data
+  Science program at Universitat Rovira i Virgili (URV)
 
 </div>
